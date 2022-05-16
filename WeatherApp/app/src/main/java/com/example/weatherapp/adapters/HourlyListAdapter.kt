@@ -1,4 +1,4 @@
-package com.example.weatherapp
+package com.example.weatherapp.adapters
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,12 +7,14 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.RecyclerView
+import com.example.weatherapp.R
 import com.example.weatherapp.models.HourlyTemperatureModel
 import java.util.*
 
 class HourlyListAdapter(
     private val hourlyTempList: List<LiveData<HourlyTemperatureModel>>
 ) : RecyclerView.Adapter<HourlyListAdapter.ViewHolder>() {
+
     class ViewHolder(view: View): RecyclerView.ViewHolder(view) {
         val hourTextView: TextView =
             view.findViewById(R.id.hourly_card_title)

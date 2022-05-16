@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.weatherapp.adapters.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
 import com.example.weatherapp.viewmodels.DetailedWeatherViewModel
 

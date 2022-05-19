@@ -15,4 +15,5 @@
     <string name="feels_like">FEELS LIKE</string>
     <string name="humidity">HUMIDITY</string>
     <string name="pressure">PRESSURE</string>
+    <string name="today">Today</string>
 </resources>

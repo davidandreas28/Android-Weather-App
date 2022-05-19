@@ -1,20 +1,19 @@
-package com.example.weatherapp
+package com.example.weatherapp.ui.todayoverview
 
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.*
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.weatherapp.adapters.HourlyListAdapter
+import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
+import com.example.weatherapp.R
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
-import com.example.weatherapp.viewmodels.DetailedWeatherViewModel
 
 class TodayOverviewFragment : Fragment() {
 
     private lateinit var binding: FragmentTodayOverviewBinding
-    private val sharedViewModel: DetailedWeatherViewModel by activityViewModels()
+    private val weatherData: DetailedWeatherViewModel by activityViewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,11 +24,10 @@ class TodayOverviewFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
+
         val fragmentBinding = FragmentTodayOverviewBinding.inflate(inflater, container, false)
         binding = fragmentBinding
-        sharedViewModel.buildHourlyTempList()
-        sharedViewModel.buildDetailedWeather()
+        weatherData.initWeatherData()
         return fragmentBinding.root
     }
 
@@ -38,47 +36,55 @@ class TodayOverviewFragment : Fragment() {
 
         setupDetailedCard()
         binding.recyclerView.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter = HourlyListAdapter(sharedViewModel.hourlyTempList)
+        binding.recyclerView.adapter = HourlyListAdapter(weatherData.todayWeatherData.value!!.hourlyWeatherList)
         binding.recyclerView.setHasFixedSize(true)
+
+        binding.outlinedButton.setOnClickListener {
+            parentFragmentManager.commit {
+                replace<NextDaysFragment>(R.id.fragment_container_view)
+                setReorderingAllowed(true)
+                addToBackStack(null)
+            }
+        }
     }
 
     private fun setupDetailedCard() {
-        val liveDataValue = sharedViewModel.detailedWeather.value!!
+        val hourWeatherObj = weatherData.todayWeatherData.value!!.hourlyWeatherList[weatherData.cardIndexSelected.value!!]
 
-        binding.detailedCardTime.text = getString(
+        binding.detailedCardTimeframe.text = getString(
             R.string.detailed_card_time,
-            liveDataValue.timeframe
+            hourWeatherObj.time
         )
-        binding.detailedIcon.setImageResource(
-            liveDataValue.iconSrc
+        binding.mainWeatherIcon.setImageResource(
+            hourWeatherObj.weatherType.imgSrc
         )
 
-        binding.detailedCardTemp.text = getString(
+        binding.mainTemperatureValue.text = getString(
             R.string.current_temp,
-            liveDataValue.temperature.toString(),
+            hourWeatherObj.tempC.toString(),
             "°C"
         )
 
-        binding.detailedCardWind.text = getString(
+        binding.windValue.text = getString(
             R.string.current_wind_speed,
-            liveDataValue.wind.toString(),
+            hourWeatherObj.windKph.toString(),
             "km/h"
         )
 
-        binding.detailedCardFeelsLike.text = getString(
+        binding.feelsLikeValue.text = getString(
             R.string.feels_like_temp,
-            liveDataValue.feelsLike.toString(),
+            hourWeatherObj.feelsLikeC.toString(),
             "°C"
         )
 
-        binding.detailedCardHumidity.text = getString(
+        binding.humidityValue.text = getString(
             R.string.humidity_value,
-            liveDataValue.humidity.toString()
+            hourWeatherObj.humidity.toString()
         )
 
         binding.pressureValue.text = getString(
             R.string.detailed_card_pressure,
-            liveDataValue.pressure.toString(),
+            hourWeatherObj.pressureMb.toString(),
             "mbar"
         )
     }

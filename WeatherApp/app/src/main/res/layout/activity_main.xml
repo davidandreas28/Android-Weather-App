@@ -4,19 +4,46 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".ui.todayoverview.MainActivity">
 
-  <androidx.fragment.app.FragmentContainerView
-      android:id="@+id/fragment_container_view"
-      android:layout_width="match_parent"
-      android:layout_height="match_parent"
-      app:layout_constraintBottom_toTopOf="@+id/bottom_navigation" />
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/toolbarContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fitsSystemWindows="true"
+        app:layout_constraintTop_toTopOf="parent">
 
-  <com.google.android.material.bottomnavigation.BottomNavigationView
-      android:id="@+id/bottom_navigation"
-      style="@style/Widget.MaterialComponents.BottomNavigationView.Colored"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      app:menu="@menu/bottom_navigation_menu"
-      app:layout_constraintBottom_toBottomOf="parent"/>
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/navColor"
+            android:fitsSystemWindows="true"
+            android:minHeight="?attr/actionBarSize"
+            app:layout_constraintTop_toTopOf="parent"
+            app:title="Bucharest, Romania"
+            app:titleMarginStart="56dp"
+            app:titleTextAppearance="@style/Toolbar.TitleText"
+            app:titleTextColor="@color/black" />
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragment_container_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="#FCFCFF"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_navigation"
+        app:layout_constraintTop_toBottomOf="@id/toolbarContainer" />
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/navigation_rect"
+        app:itemActiveIndicatorStyle="@style/ActiveIndicator"
+        app:itemIconSize="20dp"
+        app:itemIconTint="@color/black"
+        app:itemTextColor="#001B3F"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:menu="@menu/bottom_navigation_menu" />
 </androidx.constraintlayout.widget.ConstraintLayout>

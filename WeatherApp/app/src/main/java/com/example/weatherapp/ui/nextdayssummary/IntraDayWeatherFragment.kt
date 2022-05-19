@@ -46,7 +46,8 @@ class IntraDayWeatherFragment : Fragment() {
         val weatherObject = data.nextDaysData.value!![index]
 
         setupDetailedCard(weatherObject)
-        binding.recyclerView.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerView.layoutManager =
+            LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         binding.recyclerView.adapter = HourlyListAdapter(weatherObject.hourlyWeatherList)
         binding.recyclerView.setHasFixedSize(true)
     }
@@ -54,7 +55,8 @@ class IntraDayWeatherFragment : Fragment() {
     private fun setupDetailedCard(weatherObject: DayWeatherModel) {
         val hourWeatherObj = weatherObject.hourlyWeatherList[data.selectedCardIndex.value!!]
 
-        val dayOfMonth = weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val dayOfMonth =
+            weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
         val dateFormatted = weatherObject.date.format(formatter)
         val dateComposed = "${dayOfMonth}, ${dateFormatted}"
         binding.todayElement.text = dateComposed

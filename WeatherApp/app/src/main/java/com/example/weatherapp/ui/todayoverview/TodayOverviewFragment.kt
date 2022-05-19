@@ -35,8 +35,10 @@ class TodayOverviewFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupDetailedCard()
-        binding.recyclerView.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter = HourlyListAdapter(weatherData.todayWeatherData.value!!.hourlyWeatherList)
+        binding.recyclerView.layoutManager =
+            LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerView.adapter =
+            HourlyListAdapter(weatherData.todayWeatherData.value!!.hourlyWeatherList)
         binding.recyclerView.setHasFixedSize(true)
 
         binding.outlinedButton.setOnClickListener {
@@ -49,7 +51,8 @@ class TodayOverviewFragment : Fragment() {
     }
 
     private fun setupDetailedCard() {
-        val hourWeatherObj = weatherData.todayWeatherData.value!!.hourlyWeatherList[weatherData.cardIndexSelected.value!!]
+        val hourWeatherObj =
+            weatherData.todayWeatherData.value!!.hourlyWeatherList[weatherData.cardIndexSelected.value!!]
 
         binding.detailedCardTimeframe.text = getString(
             R.string.detailed_card_time,

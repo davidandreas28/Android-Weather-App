@@ -45,12 +45,14 @@ class NextDaysAdapter(
         val imgSrc = defaultHourWeatherObject.weatherType.imgSrc
         holder.nextDayIcon.setImageResource(imgSrc)
 
-        val dayOfMonth = weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val dayOfMonth =
+            weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
         val dateFormatted = weatherObject.date.format(formatter)
         val dateComposed = "$dayOfMonth, $dateFormatted"
         holder.nextDayDate.text = dateComposed
 
-        val tempSummary = "${defaultHourWeatherObject.maxTempC}°/${defaultHourWeatherObject.minTempC}°"
+        val tempSummary =
+            "${defaultHourWeatherObject.maxTempC}°/${defaultHourWeatherObject.minTempC}°"
         holder.nextDayTemp.text = tempSummary
 
         holder.nextDayItem.setOnClickListener {

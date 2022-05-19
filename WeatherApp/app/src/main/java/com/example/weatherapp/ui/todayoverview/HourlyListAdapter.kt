@@ -15,7 +15,7 @@ class HourlyListAdapter(
     private val hourlyTempList: List<HourWeatherModel>
 ) : RecyclerView.Adapter<HourlyListAdapter.ViewHolder>() {
 
-    class ViewHolder(view: View): RecyclerView.ViewHolder(view) {
+    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val hourTextView: TextView =
             view.findViewById(R.id.hourly_card_title)
         val weatherImageView: ImageView =

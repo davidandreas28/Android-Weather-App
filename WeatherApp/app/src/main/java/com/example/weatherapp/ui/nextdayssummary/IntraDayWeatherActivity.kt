@@ -13,7 +13,7 @@ class IntraDayWeatherActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intra_day_weather)
 
-        val index:Int = intent.getIntExtra("itemIndex", 0)
+        val index: Int = intent.getIntExtra("itemIndex", 0)
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
                 val bundle = bundleOf("itemIndex" to index)

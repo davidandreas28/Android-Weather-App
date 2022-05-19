@@ -2,6 +2,7 @@ package com.example.weatherapp.ui.nextdayssummary
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
 import androidx.appcompat.widget.Toolbar
 import androidx.core.os.bundleOf
 import androidx.fragment.app.add
@@ -24,5 +25,10 @@ class IntraDayWeatherActivity : AppCompatActivity() {
 
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_baseline_close_24)
+        toolbar.setNavigationOnClickListener {
+            onBackPressed()
+        }
     }
 }

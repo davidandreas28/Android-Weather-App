@@ -15,9 +15,8 @@
         android:minHeight="?attr/actionBarSize"
         app:layout_constraintTop_toTopOf="parent"
         app:title="Bucharest, Romania"
-        app:titleMarginStart="56dp"
         app:titleTextAppearance="@style/Toolbar.TitleText"
-        app:titleTextColor="@color/black" />
+        app:titleTextColor="@color/black_2" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container_view"

@@ -34,6 +34,9 @@ class TodayOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val activity = activity as? MainActivity
+        activity?.supportActionBar?.setDisplayHomeAsUpEnabled(false)
+
         setupDetailedCard()
         binding.recyclerView.layoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -42,7 +45,13 @@ class TodayOverviewFragment : Fragment() {
         binding.recyclerView.setHasFixedSize(true)
 
         binding.outlinedButton.setOnClickListener {
-            parentFragmentManager.commit {
+            activity?.supportFragmentManager?.commit {
+                setCustomAnimations(
+                    R.anim.slide_in,
+                    R.anim.fade_out,
+                    R.anim.fade_in,
+                    R.anim.slide_out
+                )
                 replace<NextDaysFragment>(R.id.fragment_container_view)
                 setReorderingAllowed(true)
                 addToBackStack(null)

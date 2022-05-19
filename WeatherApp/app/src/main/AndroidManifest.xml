@@ -11,7 +11,8 @@
         android:theme="@style/Theme.WeatherApp">
         <activity
             android:name=".ui.nextdayssummary.IntraDayWeatherActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:parentActivityName=".ui.todayoverview.MainActivity" />
         <activity
             android:name=".ui.todayoverview.MainActivity"
             android:exported="true">

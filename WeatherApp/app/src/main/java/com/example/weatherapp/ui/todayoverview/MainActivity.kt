@@ -32,8 +32,7 @@ class MainActivity : AppCompatActivity() {
                 add<TodayOverviewFragment>(R.id.fragment_container_view)
             }
         }
-        val toolbar: Toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
-
+        
+        setSupportActionBar(binding.toolbar)
     }
 }

@@ -1,28 +1,35 @@
 package com.example.weatherapp.ui.todayoverview
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.example.weatherapp.R
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.google.android.material.card.MaterialCardView
 import java.util.*
 
 class HourlyListAdapter(
-    private val hourlyTempList: List<HourWeatherModel>
+    private val hourlyTempList: List<HourWeatherModel>,
+    private val updateMethod: (Int) -> Unit,
+    private val selectedIndex: LiveData<Int>,
+    private val context: Context,
+    private val displayNow: Boolean
 ) : RecyclerView.Adapter<HourlyListAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val hourTextView: TextView =
             view.findViewById(R.id.hourly_card_title)
-        val weatherImageView: ImageView =
-            view.findViewById(R.id.hourly_card_icon)
         val temperatureTextView: TextView =
             view.findViewById(R.id.hourly_card_temp)
-        val cardContainer: View =
+        val weatherImageView: ImageView =
+            view.findViewById(R.id.hourly_card_icon)
+        val cardContainer: MaterialCardView =
             view.findViewById(R.id.hourly_card)
     }
 
@@ -31,10 +38,6 @@ class HourlyListAdapter(
             .inflate(R.layout.hourly_card_item, parent, false)
         val viewHolder = ViewHolder(view)
 
-        viewHolder.cardContainer.setOnClickListener {
-            val position = viewHolder.adapterPosition
-            Toast.makeText(parent.context, position.toString(), Toast.LENGTH_SHORT).show()
-        }
         return viewHolder
     }
 
@@ -42,10 +45,28 @@ class HourlyListAdapter(
         val currentHourIn24Format: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val item = hourlyTempList[position]
 
-        if (currentHourIn24Format == position) {
-            holder.hourTextView.text = "Now"
+        if (displayNow && currentHourIn24Format == position) {
+            holder.hourTextView.text = context.getString(R.string.now)
         } else {
             holder.hourTextView.text = item.time
+        }
+
+        if (position == selectedIndex.value) {
+            holder.cardContainer.setCardBackgroundColor(context.resources.getColor(R.color.main_card_color))
+            holder.hourTextView.setTextColor(context.resources.getColor(R.color.small_card_color))
+            holder.temperatureTextView.setTextColor(context.resources.getColor(R.color.small_card_color))
+        } else {
+            holder.cardContainer.setCardBackgroundColor(context.resources.getColor(R.color.small_card_color))
+            holder.hourTextView.setTextColor(context.resources.getColor(R.color.grey))
+            holder.temperatureTextView.setTextColor(context.resources.getColor(R.color.grey))
+        }
+
+        holder.cardContainer.setOnClickListener {
+            val position = holder.adapterPosition
+            holder.cardContainer
+            notifyItemChanged(selectedIndex.value!!)
+            updateMethod(position)
+            notifyItemChanged(selectedIndex.value!!)
         }
 
         holder.weatherImageView.setImageResource(item.weatherType.imgSrc)

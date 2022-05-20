@@ -14,7 +14,7 @@ class DetailedWeatherViewModel : ViewModel() {
     private val _cardIndexSelected = MutableLiveData<Int>()
     val cardIndexSelected get() = _cardIndexSelected
 
-    fun initWeatherData() {
+    init {
         _todayWeatherData.value = MainRepository.getTodayWeatherData()
         _cardIndexSelected.value = LocalTime.now().hour
     }

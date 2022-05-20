@@ -29,7 +29,6 @@ class NextDaysFragment : Fragment() {
     ): View? {
         val fragmentBinding = FragmentNextDaysBinding.inflate(inflater, container, false)
         binding = fragmentBinding
-        data.initNextDaysData()
         return binding.root
     }
 

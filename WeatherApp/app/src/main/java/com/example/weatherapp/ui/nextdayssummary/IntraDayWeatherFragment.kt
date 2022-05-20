@@ -12,7 +12,6 @@ import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -42,14 +41,26 @@ class IntraDayWeatherFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val index = requireArguments().getInt("itemIndex")
 
-        data.initNextDaysData()
         val weatherObject = data.nextDaysData.value!![index]
-
         setupDetailedCard(weatherObject)
+        setupRecycleView(weatherObject)
+    }
+
+    private fun setupRecycleView(weatherObject: DayWeatherModel) {
+        val updatePressedPosition: (Int) -> Unit = {
+            data.selectedCardIndex.value = it
+        }
         binding.recyclerView.layoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter = HourlyListAdapter(weatherObject.hourlyWeatherList)
+        binding.recyclerView.adapter = HourlyListAdapter(
+            weatherObject.hourlyWeatherList,
+            updatePressedPosition,
+            data.selectedCardIndex,
+            context!!,
+            false
+        )
         binding.recyclerView.setHasFixedSize(true)
+        binding.recyclerView.scrollToPosition(data.selectedCardIndex.value!!)
     }
 
     private fun setupDetailedCard(weatherObject: DayWeatherModel) {

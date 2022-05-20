@@ -16,4 +16,5 @@
     <string name="humidity">HUMIDITY</string>
     <string name="pressure">PRESSURE</string>
     <string name="today">Today</string>
+    <string name="now">Now</string>
 </resources>

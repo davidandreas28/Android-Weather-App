@@ -13,8 +13,9 @@ class NextDaysViewModel : ViewModel() {
     private val _selectedCardIndex = MutableLiveData<Int>()
     val selectedCardIndex get() = _selectedCardIndex
 
-    fun initNextDaysData() {
+    init {
         _nextDaysData.value = MainRepository.getNext7DaysWeatherData()
         _selectedCardIndex.value = 12
     }
+
 }

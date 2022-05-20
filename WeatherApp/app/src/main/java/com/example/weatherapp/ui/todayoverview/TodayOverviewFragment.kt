@@ -27,7 +27,6 @@ class TodayOverviewFragment : Fragment() {
 
         val fragmentBinding = FragmentTodayOverviewBinding.inflate(inflater, container, false)
         binding = fragmentBinding
-        weatherData.initWeatherData()
         return fragmentBinding.root
     }
 
@@ -38,11 +37,7 @@ class TodayOverviewFragment : Fragment() {
         activity?.supportActionBar?.setDisplayHomeAsUpEnabled(false)
 
         setupDetailedCard()
-        binding.recyclerView.layoutManager =
-            LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter =
-            HourlyListAdapter(weatherData.todayWeatherData.value!!.hourlyWeatherList)
-        binding.recyclerView.setHasFixedSize(true)
+        setupRecycleView()
 
         binding.outlinedButton.setOnClickListener {
             activity?.supportFragmentManager?.commit {
@@ -57,6 +52,25 @@ class TodayOverviewFragment : Fragment() {
                 addToBackStack(null)
             }
         }
+    }
+
+    private fun setupRecycleView() {
+        val updatePressedPosition: (Int) -> Unit = {
+            weatherData.cardIndexSelected.value = it
+        }
+
+        binding.recyclerView.layoutManager =
+            LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerView.adapter =
+            HourlyListAdapter(
+                weatherData.todayWeatherData.value!!.hourlyWeatherList,
+                updatePressedPosition,
+                weatherData.cardIndexSelected,
+                context!!,
+                true
+            )
+        binding.recyclerView.setHasFixedSize(true)
+        binding.recyclerView.scrollToPosition(weatherData.cardIndexSelected.value!!)
     }
 
     private fun setupDetailedCard() {

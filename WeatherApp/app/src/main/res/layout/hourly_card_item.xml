@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="24dp"
-        app:cardBackgroundColor="#FCFCFF"
+        app:cardBackgroundColor="@color/small_card_color"
         app:strokeWidth="0dp"
         android:clickable="true"
         app:cardElevation="3dp"

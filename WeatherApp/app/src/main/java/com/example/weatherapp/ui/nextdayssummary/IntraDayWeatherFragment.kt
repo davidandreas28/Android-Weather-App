@@ -65,13 +65,13 @@ class IntraDayWeatherFragment : Fragment() {
 
     private fun setupDetailedCard(weatherObject: DayWeatherModel) {
         val hourWeatherObj = weatherObject.hourlyWeatherList[data.selectedCardIndex.value!!]
-
-        val dayOfMonth =
-            weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+        val dayOfMonth = weatherObject.date.dayOfWeek.getDisplayName(
+            TextStyle.FULL, Locale.getDefault()
+        )
         val dateFormatted = weatherObject.date.format(formatter)
         val dateComposed = "${dayOfMonth}, ${dateFormatted}"
-        binding.todayElement.text = dateComposed
 
+        binding.todayElement.text = dateComposed
         binding.detailedCardTimeframe.text = getString(
             R.string.detailed_card_time,
             hourWeatherObj.time
@@ -79,30 +79,25 @@ class IntraDayWeatherFragment : Fragment() {
         binding.mainWeatherIcon.setImageResource(
             hourWeatherObj.weatherType.imgSrc
         )
-
         binding.mainTemperatureValue.text = getString(
             R.string.current_temp,
             hourWeatherObj.tempC.toString(),
             "°C"
         )
-
         binding.windValue.text = getString(
             R.string.current_wind_speed,
             hourWeatherObj.windKph.toString(),
             "km/h"
         )
-
         binding.feelsLikeValue.text = getString(
             R.string.feels_like_temp,
             hourWeatherObj.feelsLikeC.toString(),
             "°C"
         )
-
         binding.humidityValue.text = getString(
             R.string.humidity_value,
             hourWeatherObj.humidity.toString()
         )
-
         binding.pressureValue.text = getString(
             R.string.detailed_card_pressure,
             hourWeatherObj.pressureMb.toString(),

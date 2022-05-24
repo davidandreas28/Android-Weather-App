@@ -2,7 +2,6 @@ package com.example.weatherapp.ui.nextdayssummary
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.View
 import androidx.appcompat.widget.Toolbar
 import androidx.core.os.bundleOf
 import androidx.fragment.app.add
@@ -10,6 +9,7 @@ import androidx.fragment.app.commit
 import com.example.weatherapp.R
 
 class IntraDayWeatherActivity : AppCompatActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intra_day_weather)

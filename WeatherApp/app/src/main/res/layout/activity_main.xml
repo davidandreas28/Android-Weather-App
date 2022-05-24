@@ -21,7 +21,6 @@
             android:fitsSystemWindows="true"
             android:minHeight="?attr/actionBarSize"
             app:layout_constraintTop_toTopOf="parent"
-            app:title="Bucharest, Romania"
             app:titleTextAppearance="@style/Toolbar.TitleText"
             app:titleTextColor="@color/black_2" />
     </com.google.android.material.appbar.AppBarLayout>

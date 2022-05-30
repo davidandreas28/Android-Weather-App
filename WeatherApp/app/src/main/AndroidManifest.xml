@@ -16,9 +16,9 @@
         <activity
             android:name=".ui.nextdayssummary.IntraDayWeatherActivity"
             android:exported="false"
-            android:parentActivityName=".ui.todayoverview.MainActivity" />
+            android:parentActivityName=".MainActivity" />
         <activity
-            android:name=".ui.todayoverview.MainActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

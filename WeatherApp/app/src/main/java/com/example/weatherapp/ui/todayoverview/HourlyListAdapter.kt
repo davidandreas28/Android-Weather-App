@@ -11,67 +11,96 @@ import androidx.lifecycle.LiveData
 import androidx.recyclerview.widget.RecyclerView
 import com.example.weatherapp.R
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.databinding.HourlyCardItemBinding
 import com.google.android.material.card.MaterialCardView
 import java.util.*
 
 class HourlyListAdapter(
-    private val hourlyTempList: List<HourWeatherModel>,
-    private val updateMethod: (Int) -> Unit,
-    private val selectedIndex: LiveData<Int>,
-    private val context: Context,
+    private val onItemClicked: (Int) -> Unit,
     private val displayNow: Boolean
 ) : RecyclerView.Adapter<HourlyListAdapter.ViewHolder>() {
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val hourTextView: TextView =
-            view.findViewById(R.id.hourly_card_title)
-        val temperatureTextView: TextView =
-            view.findViewById(R.id.hourly_card_temp)
-        val weatherImageView: ImageView =
-            view.findViewById(R.id.hourly_card_icon)
-        val cardContainer: MaterialCardView =
-            view.findViewById(R.id.hourly_card)
+    var selectedIndex: Int? = null
+        set(value) {
+            field?.let {
+                notifyItemChanged(it)
+            }
+            field = value
+            field?.let {
+                notifyItemChanged(it)
+            }
+        }
+
+    var hourlyTempList: List<HourWeatherModel> = listOf()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
+    class ViewHolder(private var binding: HourlyCardItemBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(
+            viewHolderItem: HourWeatherModel,
+            displayNow: Boolean,
+            position: Int,
+            selectedIndex: Int?,
+            onItemClicked: (Int) -> Unit
+        ) {
+            val currentHourIn24Format: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            val context = itemView.context
+
+            with(binding) {
+                if (displayNow && currentHourIn24Format == position) {
+                    hourlyCardTitle.text = context.getString(R.string.now)
+                } else {
+                    hourlyCardTitle.text = viewHolderItem.time
+                }
+
+                val tempString = viewHolderItem.tempC.toString() + "°"
+                hourlyCardTemp.text = tempString
+                hourlyCardIcon.setImageResource(viewHolderItem.weatherType.imgSrc)
+                hourlyCard.setOnClickListener {
+                    onItemClicked(position)
+                }
+                hourlyCardIcon.setImageResource(viewHolderItem.weatherType.imgSrc)
+                selectedIndex?.let {
+                    if (position == it) {
+                        hourlyCard.setCardBackgroundColor(context.resources.getColor(R.color.main_card_color))
+                        hourlyCardTitle.setTextColor(context.resources.getColor(R.color.small_card_color))
+                        hourlyCardTemp.setTextColor(context.resources.getColor(R.color.small_card_color))
+                    } else {
+                        hourlyCard.setCardBackgroundColor(context.resources.getColor(R.color.small_card_color))
+                        hourlyCardTitle.setTextColor(context.resources.getColor(R.color.grey))
+                        hourlyCardTemp.setTextColor(context.resources.getColor(R.color.grey))
+                    }
+                } ?: run {
+                    hourlyCard.setCardBackgroundColor(context.resources.getColor(R.color.small_card_color))
+                    hourlyCardTitle.setTextColor(context.resources.getColor(R.color.grey))
+                    hourlyCardTemp.setTextColor(context.resources.getColor(R.color.grey))
+                }
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.hourly_card_item, parent, false)
-        val viewHolder = ViewHolder(view)
-
-        return viewHolder
+        return ViewHolder(
+            HourlyCardItemBinding.inflate(
+                LayoutInflater.from(
+                    parent.context
+                )
+            )
+        )
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val currentHourIn24Format: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
-        val item = hourlyTempList[position]
-
-        if (displayNow && currentHourIn24Format == position) {
-            holder.hourTextView.text = context.getString(R.string.now)
-        } else {
-            holder.hourTextView.text = item.time
-        }
-
-        if (position == selectedIndex.value) {
-            holder.cardContainer.setCardBackgroundColor(context.resources.getColor(R.color.main_card_color))
-            holder.hourTextView.setTextColor(context.resources.getColor(R.color.small_card_color))
-            holder.temperatureTextView.setTextColor(context.resources.getColor(R.color.small_card_color))
-        } else {
-            holder.cardContainer.setCardBackgroundColor(context.resources.getColor(R.color.small_card_color))
-            holder.hourTextView.setTextColor(context.resources.getColor(R.color.grey))
-            holder.temperatureTextView.setTextColor(context.resources.getColor(R.color.grey))
-        }
-
-        holder.cardContainer.setOnClickListener {
-            val position = holder.adapterPosition
-            holder.cardContainer
-            notifyItemChanged(selectedIndex.value!!)
-            updateMethod(position)
-            notifyItemChanged(selectedIndex.value!!)
-        }
-
-        holder.weatherImageView.setImageResource(item.weatherType.imgSrc)
-        val tempVal = item.tempC.toString() + "°"
-        holder.temperatureTextView.text = tempVal
+        holder.bind(
+            hourlyTempList[position],
+            displayNow,
+            position,
+            selectedIndex,
+            onItemClicked
+        )
     }
 
     override fun getItemCount(): Int = hourlyTempList.size

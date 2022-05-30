@@ -1,68 +1,73 @@
 package com.example.weatherapp.ui.nextdayssummary
 
-import android.content.Intent
+import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.weatherapp.R
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.databinding.DayTemperatureCardItemBinding
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
 
 class NextDaysAdapter(
-    private val dataset: List<DayWeatherModel>
+    private val onItemClicked: (Int) -> Unit
 ) : RecyclerView.Adapter<NextDaysAdapter.ViewHolder>() {
 
-    val formatter = DateTimeFormatter.ofPattern("dd MMM")
-    val DEFAULT_CARD_POS = 12
+    var weatherData: List<DayWeatherModel> = listOf()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
 
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val nextDayIcon: ImageView =
-            view.findViewById(R.id.next_days_icon)
-        val nextDayDate: TextView =
-            view.findViewById(R.id.next_days_date)
-        val nextDayTemp: TextView =
-            view.findViewById(R.id.next_day_temp)
-        val nextDayItem: View =
-            view.findViewById(R.id.next_day_item)
-        val context = view.context
-    }
+    class ViewHolder(private var binding: DayTemperatureCardItemBinding) :
+        RecyclerView.ViewHolder(binding.root) {
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.day_temperature_card_item, parent, false)
+        val DEFAULT_CARD_POS = 12
+        val formatter = DateTimeFormatter.ofPattern("dd MMM")
 
-        return ViewHolder(view)
-    }
+        fun bind(
+            dayWeatherObject: DayWeatherModel,
+            position: Int,
+            onItemClicked: (Int) -> Unit
+        ) {
+            with(binding) {
+                val defaultWeatherObject = dayWeatherObject.hourlyWeatherList[DEFAULT_CARD_POS]
+                val dayOfMonth =
+                    dayWeatherObject.date.dayOfWeek.getDisplayName(
+                        TextStyle.FULL,
+                        Locale.getDefault()
+                    )
+                val dateFormatted = dayWeatherObject.date.format(formatter)
+                val dateComposed = "$dayOfMonth, $dateFormatted"
+                val tempSummary = "${defaultWeatherObject.maxTempC}°/${defaultWeatherObject.minTempC}°"
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val weatherObject = dataset[position]
-        val defaultHourWeatherObject = weatherObject.hourlyWeatherList[DEFAULT_CARD_POS]
-        val imgSrc = defaultHourWeatherObject.weatherType.imgSrc
-        holder.nextDayIcon.setImageResource(imgSrc)
-
-        val dayOfMonth =
-            weatherObject.date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-        val dateFormatted = weatherObject.date.format(formatter)
-        val dateComposed = "$dayOfMonth, $dateFormatted"
-        holder.nextDayDate.text = dateComposed
-
-        val tempSummary =
-            "${defaultHourWeatherObject.maxTempC}°/${defaultHourWeatherObject.minTempC}°"
-        holder.nextDayTemp.text = tempSummary
-
-        holder.nextDayItem.setOnClickListener {
-            val intent = Intent(holder.context, IntraDayWeatherActivity::class.java)
-            intent.putExtra("itemIndex", position)
-            holder.context.startActivity(intent)
+                nextDaysIcon.setImageResource(defaultWeatherObject.weatherType.imgSrc)
+                nextDaysDate.text = dateComposed.trim()
+                nextDayTemp.text = tempSummary.trim()
+                nextDayItem.setOnClickListener {
+                    onItemClicked(position)
+                }
+            }
         }
     }
 
-    override fun getItemCount(): Int = dataset.size
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        return ViewHolder(
+            DayTemperatureCardItemBinding.inflate(
+                LayoutInflater.from(parent.context)
+            )
+        )
+    }
 
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        holder.bind(
+            weatherData[position],
+            position,
+            onItemClicked
+        )
+    }
+
+    override fun getItemCount(): Int = weatherData.size
 
 }

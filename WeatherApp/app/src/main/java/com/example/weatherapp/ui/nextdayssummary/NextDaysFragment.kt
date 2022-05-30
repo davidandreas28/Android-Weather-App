@@ -9,18 +9,32 @@ import android.view.ViewGroup
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.databinding.FragmentNextDaysBinding
-import com.example.weatherapp.ui.todayoverview.MainActivity
+import com.example.weatherapp.MainActivity
+
+import android.content.Context
+import android.content.Intent
+import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
+
 
 class NextDaysFragment : Fragment() {
 
+    interface OnItemClickedListener {
+        fun onBackButtonClicked(item: MenuItem): Boolean
+    }
+
+    private val sDummyCallbacks: OnItemClickedListener = object : OnItemClickedListener {
+        override fun onBackButtonClicked(item: MenuItem): Boolean {
+            return false
+        }
+    }
+    private var onClickListener: OnItemClickedListener = sDummyCallbacks
+    private lateinit var adapter: NextDaysAdapter
     private lateinit var binding: FragmentNextDaysBinding
-    private val data: NextDaysViewModel by viewModels()
+    private val nextDaysViewModel: NextDaysViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        val activity = activity as? MainActivity
-        activity?.supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     override fun onCreateView(
@@ -34,19 +48,40 @@ class NextDaysFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.recyclerView.layoutManager = LinearLayoutManager(context)
-        binding.recyclerView.adapter = NextDaysAdapter(data.nextDaysData.value!!)
-        binding.recyclerView.setHasFixedSize(true)
+        setupRecycleView()
+        observe()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val activity = activity as? MainActivity
-        return when (item.itemId) {
-            android.R.id.home -> {
-                activity?.onBackPressed()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+        return onClickListener.onBackButtonClicked(item)
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is MainActivity) {
+            onClickListener = context
         }
+    }
+
+    private fun observe() {
+        nextDaysViewModel.nextDaysData.observe(viewLifecycleOwner) {
+            adapter.weatherData = it
+        }
+    }
+
+    private fun setupRecycleView() {
+        val onItemClicked: (Int) -> Unit = {
+            val intent = Intent(context, IntraDayWeatherActivity::class.java)
+            intent.putExtra("itemIndex", it)
+            startActivity(intent)
+        }
+
+        adapter = NextDaysAdapter(
+            onItemClicked
+        )
+
+        binding.recyclerView.layoutManager = LinearLayoutManager(context)
+        binding.recyclerView.adapter = adapter
+        binding.recyclerView.setHasFixedSize(true)
     }
 }

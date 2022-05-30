@@ -1,24 +1,33 @@
 package com.example.weatherapp.ui.todayoverview
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.*
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
+import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
+import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
 
 class TodayOverviewFragment : Fragment() {
 
-    private lateinit var binding: FragmentTodayOverviewBinding
-    private val weatherData: DetailedWeatherViewModel by activityViewModels()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
+    interface MainActivityLinker {
+        fun onNextDaysButtonClicked()
+        fun setHomeAsUp()
     }
+
+    private val dummyLinker: MainActivityLinker = object : MainActivityLinker {
+        override fun onNextDaysButtonClicked() {}
+        override fun setHomeAsUp() {}
+    }
+
+    private var mainActivityLinker: MainActivityLinker = dummyLinker
+    private lateinit var binding: FragmentTodayOverviewBinding
+    private lateinit var adapter: HourlyListAdapter
+    private val weatherViewModel: DetailedWeatherViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -33,85 +42,91 @@ class TodayOverviewFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val activity = activity as? MainActivity
-        activity?.supportActionBar?.setDisplayHomeAsUpEnabled(false)
-
-        setupDetailedCard()
+        mainActivityLinker.setHomeAsUp()
+        observe()
         setupRecycleView()
 
         binding.outlinedButton.setOnClickListener {
-            activity?.supportFragmentManager?.commit {
-                setCustomAnimations(
-                    R.anim.slide_in,
-                    R.anim.fade_out,
-                    R.anim.fade_in,
-                    R.anim.slide_out
-                )
-                replace<NextDaysFragment>(R.id.fragment_container_view)
-                setReorderingAllowed(true)
-                addToBackStack(null)
-            }
+            mainActivityLinker.onNextDaysButtonClicked()
+        }
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is MainActivity) {
+            mainActivityLinker = context
         }
     }
 
     private fun setupRecycleView() {
-        val updatePressedPosition: (Int) -> Unit = {
-            weatherData.cardIndexSelected.value = it
+        val onItemClicked: (Int) -> Unit = {
+            weatherViewModel.updateSelectedCardIndex(it)
         }
+
+        adapter = HourlyListAdapter(
+            onItemClicked,
+            true
+        )
 
         binding.recyclerView.layoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter =
-            HourlyListAdapter(
-                weatherData.todayWeatherData.value!!.hourlyWeatherList,
-                updatePressedPosition,
-                weatherData.cardIndexSelected,
-                context!!,
-                true
-            )
+        binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.scrollToPosition(weatherData.cardIndexSelected.value!!)
+        binding.recyclerView.scrollToPosition(weatherViewModel.cardIndexSelected.value!!)
     }
 
-    private fun setupDetailedCard() {
-        val hourWeatherObj =
-            weatherData.todayWeatherData.value!!.hourlyWeatherList[weatherData.cardIndexSelected.value!!]
+    private fun observe() {
+        weatherViewModel.cardIndexSelected.observe(viewLifecycleOwner) {
+            adapter.selectedIndex = it
+        }
 
-        binding.detailedCardTimeframe.text = getString(
-            R.string.detailed_card_time,
-            hourWeatherObj.time
-        )
-        binding.mainWeatherIcon.setImageResource(
-            hourWeatherObj.weatherType.imgSrc
-        )
+        weatherViewModel.todayBigCardData.observe(viewLifecycleOwner) {
+            if (it == null)
+                return@observe
+            setupDetailedCard(it)
+        }
 
-        binding.mainTemperatureValue.text = getString(
-            R.string.current_temp,
-            hourWeatherObj.tempC.toString(),
-            "°C"
-        )
+        weatherViewModel.todayWeatherData.observe(viewLifecycleOwner) {
+            if (it == null)
+                return@observe
+            adapter.hourlyTempList = it.hourlyWeatherList
+        }
+    }
 
-        binding.windValue.text = getString(
-            R.string.current_wind_speed,
-            hourWeatherObj.windKph.toString(),
-            "km/h"
-        )
+    private fun setupDetailedCard(hourWeatherObj: HourWeatherModel) {
 
-        binding.feelsLikeValue.text = getString(
-            R.string.feels_like_temp,
-            hourWeatherObj.feelsLikeC.toString(),
-            "°C"
-        )
-
-        binding.humidityValue.text = getString(
-            R.string.humidity_value,
-            hourWeatherObj.humidity.toString()
-        )
-
-        binding.pressureValue.text = getString(
-            R.string.detailed_card_pressure,
-            hourWeatherObj.pressureMb.toString(),
-            "mbar"
-        )
+        with(binding) {
+            detailedCardTimeframe.text = getString(
+                R.string.detailed_card_time,
+                hourWeatherObj.time
+            )
+            mainWeatherIcon.setImageResource(
+                hourWeatherObj.weatherType.imgSrc
+            )
+            mainTemperatureValue.text = getString(
+                R.string.current_temp,
+                hourWeatherObj.tempC.toString(),
+                "°C"
+            )
+            windValue.text = getString(
+                R.string.current_wind_speed,
+                hourWeatherObj.windKph.toString(),
+                "km/h"
+            )
+            feelsLikeValue.text = getString(
+                R.string.feels_like_temp,
+                hourWeatherObj.feelsLikeC.toString(),
+                "°C"
+            )
+            humidityValue.text = getString(
+                R.string.humidity_value,
+                hourWeatherObj.humidity.toString()
+            )
+            pressureValue.text = getString(
+                R.string.detailed_card_pressure,
+                hourWeatherObj.pressureMb.toString(),
+                "mbar"
+            )
+        }
     }
 }

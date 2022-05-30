@@ -5,13 +5,14 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.core.models.HourWeatherModel
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -19,13 +20,10 @@ import java.util.*
 class IntraDayWeatherFragment : Fragment() {
 
     private lateinit var binding: FragmentIntraDayWeatherBinding
-    private val data: NextDaysViewModel by viewModels()
+    private lateinit var adapter: HourlyListAdapter
+    private val nextDaysViewModel: NextDaysViewModel by viewModels()
     val formatter = DateTimeFormatter.ofPattern("dd MMM")
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true)
-    }
+    private var currentDayData: List<DayWeatherModel> = listOf()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,34 +39,48 @@ class IntraDayWeatherFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val index = requireArguments().getInt("itemIndex")
 
-        val weatherObject = data.nextDaysData.value!![index]
-        setupDetailedCard(weatherObject)
-        setupRecycleView(weatherObject)
+        observe(index)
+        setupRecycleView()
     }
 
-    private fun setupRecycleView(weatherObject: DayWeatherModel) {
-        val updatePressedPosition: (Int) -> Unit = {
-            data.selectedCardIndex.value = it
+    private fun observe(index: Int) {
+        nextDaysViewModel.selectedCardIndex.observe(viewLifecycleOwner) {
+            adapter.selectedIndex = it
         }
+
+        nextDaysViewModel.todayBigCardData.observe(viewLifecycleOwner) {
+            if (it == null) {
+                return@observe
+            }
+
+            currentDayData = it.first
+            adapter.hourlyTempList = currentDayData[index].hourlyWeatherList
+            setupDetailedCard(
+                currentDayData[index].hourlyWeatherList[it.second],
+                currentDayData[index].date
+            )
+        }
+    }
+
+    private fun setupRecycleView() {
+        val onItemClicked: (Int) -> Unit = {
+            nextDaysViewModel.updateSelectedCardIndex(it)
+        }
+
+        adapter = HourlyListAdapter(onItemClicked, false)
+
         binding.recyclerView.layoutManager =
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        binding.recyclerView.adapter = HourlyListAdapter(
-            weatherObject.hourlyWeatherList,
-            updatePressedPosition,
-            data.selectedCardIndex,
-            context!!,
-            false
-        )
+        binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.scrollToPosition(data.selectedCardIndex.value!!)
+        binding.recyclerView.scrollToPosition(nextDaysViewModel.selectedCardIndex.value!!)
     }
 
-    private fun setupDetailedCard(weatherObject: DayWeatherModel) {
-        val hourWeatherObj = weatherObject.hourlyWeatherList[data.selectedCardIndex.value!!]
-        val dayOfMonth = weatherObject.date.dayOfWeek.getDisplayName(
+    private fun setupDetailedCard(hourWeatherObj: HourWeatherModel, dayDate: LocalDate) {
+        val dayOfMonth = dayDate.dayOfWeek.getDisplayName(
             TextStyle.FULL, Locale.getDefault()
         )
-        val dateFormatted = weatherObject.date.format(formatter)
+        val dateFormatted = dayDate.format(formatter)
         val dateComposed = "${dayOfMonth}, ${dateFormatted}"
 
         binding.todayElement.text = dateComposed

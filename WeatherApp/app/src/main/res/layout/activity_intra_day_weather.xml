@@ -22,7 +22,7 @@
         android:id="@+id/fragment_container_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:background="#FCFCFF"
+        android:background="@color/small_card_color"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toBottomOf="parent"/>
 

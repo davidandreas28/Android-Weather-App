@@ -3,9 +3,14 @@ package com.example.weatherapp.core.repositories
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.models.WeatherType
+import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import java.time.LocalDate
 
 class MockWeatherRepository : WeatherRepository {
+
+    private var localDateTimeProvider: DateTime = LocalDateTimeImpl()
+
     override fun getTodayWeatherData(): DayWeatherModel {
         return buildDayWeatherObject()
     }
@@ -48,7 +53,7 @@ class MockWeatherRepository : WeatherRepository {
             )
             hourWeatherList.add(hourWeatherObj)
         }
-        val nowDate = LocalDate.now()
+        val nowDate = localDateTimeProvider.getDateTime().toLocalDate()
         return DayWeatherModel(
             nowDate,
             hourWeatherList

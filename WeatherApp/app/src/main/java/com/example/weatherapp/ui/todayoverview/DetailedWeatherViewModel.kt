@@ -5,7 +5,8 @@ import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.repositories.MockWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
-import java.time.LocalTime
+import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
 
 class DetailedWeatherViewModel : ViewModel() {
 
@@ -19,6 +20,8 @@ class DetailedWeatherViewModel : ViewModel() {
         addSource(todayWeatherData) { value = it to (value?.second) }
         addSource(cardIndexSelected) { value = Pair(value?.first, it) }
     }
+
+    private val dateTimeProvider: DateTime = LocalDateTimeImpl()
 
     val todayBigCardData
         get(): LiveData<HourWeatherModel> = Transformations.map(_todayBigCardData) {
@@ -36,7 +39,7 @@ class DetailedWeatherViewModel : ViewModel() {
     init {
         weatherRepository = MockWeatherRepository()
         _todayWeatherData.value = weatherRepository.getTodayWeatherData()
-        _cardIndexSelected.value = LocalTime.now().hour
+        _cardIndexSelected.value = dateTimeProvider.getDateTime().hour
     }
 
     fun updateSelectedCardIndex(index: Int) {

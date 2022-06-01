@@ -16,6 +16,7 @@ enum class WeatherType(val imgSrc: Int) {
     BLOWING_SNOW(R.drawable.ic_drizzle),
     BLIZZARD(R.drawable.ic_drizzle),
     FOG(R.drawable.ic_drizzle),
+    CLEAR(R.drawable.ic_drizzle),
     FREEZING_FOG(R.drawable.ic_drizzle),
     PATCHY_LIGHT_DRIZZLE(R.drawable.ic_drizzle),
     LIGHT_DRIZZLE(R.drawable.ic_drizzle),

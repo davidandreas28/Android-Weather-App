@@ -7,6 +7,7 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import com.example.weatherapp.R
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 
 class IntraDayWeatherActivity : AppCompatActivity() {
 
@@ -23,12 +24,19 @@ class IntraDayWeatherActivity : AppCompatActivity() {
             }
         }
 
+        setupActionBar()
+    }
+
+    fun setupActionBar() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_baseline_close_24)
+        supportActionBar?.title = LocationSharedPrefs.getLocationName()
         toolbar.setNavigationOnClickListener {
             onBackPressed()
         }
     }
+
+
 }

@@ -3,6 +3,7 @@ package com.example.weatherapp
 import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.models.Location
 import com.example.weatherapp.core.repositories.LocationRepository
 
@@ -22,6 +23,7 @@ class MainActivityViewModel : ViewModel() {
         val newLocation = locationRepository.provideLocation(context, latitude, longitude)
         newLocation?.let {
             _location.value = it
+            LocationSharedPrefs.saveLocation(it)
         }
     }
 }

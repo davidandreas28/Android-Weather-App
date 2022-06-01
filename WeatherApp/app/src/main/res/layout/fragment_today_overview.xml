@@ -31,7 +31,6 @@
             android:fontFamily="@font/nunitosans600"
             android:gravity="top"
             android:lineSpacingExtra="10sp"
-            android:text="Saturday, 30 April"
             android:textColor="#43474E"
             android:textSize="16sp"
             app:layout_constraintStart_toStartOf="@id/today_element"

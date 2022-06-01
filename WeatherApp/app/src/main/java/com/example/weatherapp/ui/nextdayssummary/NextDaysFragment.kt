@@ -13,18 +13,22 @@ import com.example.weatherapp.MainActivity
 
 import android.content.Context
 import android.content.Intent
-import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 
 
 class NextDaysFragment : Fragment() {
 
     interface OnItemClickedListener {
         fun onBackButtonClicked(item: MenuItem): Boolean
+        fun setupToolbar()
     }
 
     private val sDummyCallbacks: OnItemClickedListener = object : OnItemClickedListener {
         override fun onBackButtonClicked(item: MenuItem): Boolean {
             return false
+        }
+
+        override fun setupToolbar() {
+            return
         }
     }
     private var onClickListener: OnItemClickedListener = sDummyCallbacks
@@ -35,6 +39,7 @@ class NextDaysFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        onClickListener.setupToolbar()
     }
 
     override fun onCreateView(
@@ -43,6 +48,7 @@ class NextDaysFragment : Fragment() {
     ): View? {
         val fragmentBinding = FragmentNextDaysBinding.inflate(inflater, container, false)
         binding = fragmentBinding
+        nextDaysViewModel.getNextDaysWeather()
         return binding.root
     }
 

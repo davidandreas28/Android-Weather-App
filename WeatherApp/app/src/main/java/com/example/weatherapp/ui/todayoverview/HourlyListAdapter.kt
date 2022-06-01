@@ -57,7 +57,7 @@ class HourlyListAdapter(
                     hourlyCardTitle.text = viewHolderItem.time
                 }
 
-                val tempString = viewHolderItem.tempC.toString() + "°"
+                val tempString = DetailedWeatherViewModel.getTempPref(viewHolderItem, false)
                 hourlyCardTemp.text = tempString
                 hourlyCardIcon.setImageResource(viewHolderItem.weatherType.imgSrc)
                 hourlyCard.setOnClickListener {

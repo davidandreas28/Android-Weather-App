@@ -12,6 +12,11 @@ import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getFeelsLikeTempPref
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getPressurePref
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getTempPref
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -32,13 +37,13 @@ class IntraDayWeatherFragment : Fragment() {
 
         val fragmentBinding = FragmentIntraDayWeatherBinding.inflate(inflater, container, false)
         binding = fragmentBinding
+        nextDaysViewModel.getNextDaysWeather()
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val index = requireArguments().getInt("itemIndex")
-
         observe(index)
         setupRecycleView()
     }
@@ -73,7 +78,7 @@ class IntraDayWeatherFragment : Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.scrollToPosition(nextDaysViewModel.selectedCardIndex.value!!)
+        binding.recyclerView.scrollToPosition(LocalDateTimeImpl().getDateTime().hour)
     }
 
     private fun setupDetailedCard(hourWeatherObj: HourWeatherModel, dayDate: LocalDate) {
@@ -93,8 +98,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.mainTemperatureValue.text = getString(
             R.string.current_temp,
-            hourWeatherObj.tempC.toString(),
-            "°C"
+            getTempPref(hourWeatherObj, true)
         )
         binding.windValue.text = getString(
             R.string.current_wind_speed,
@@ -103,8 +107,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.feelsLikeValue.text = getString(
             R.string.feels_like_temp,
-            hourWeatherObj.feelsLikeC.toString(),
-            "°C"
+            getFeelsLikeTempPref(hourWeatherObj, true)
         )
         binding.humidityValue.text = getString(
             R.string.humidity_value,
@@ -112,8 +115,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.pressureValue.text = getString(
             R.string.detailed_card_pressure,
-            hourWeatherObj.pressureMb.toString(),
-            "mbar"
+            getPressurePref(hourWeatherObj)
         )
     }
 }

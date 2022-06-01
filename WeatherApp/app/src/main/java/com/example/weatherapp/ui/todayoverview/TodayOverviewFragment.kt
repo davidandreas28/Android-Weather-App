@@ -1,16 +1,27 @@
 package com.example.weatherapp.ui.todayoverview
 
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.*
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
+import com.example.weatherapp.core.services.WeatherBroadcastReceiver
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.core.services.ForegroundService
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.*
 
 class TodayOverviewFragment : Fragment() {
 
@@ -27,7 +38,19 @@ class TodayOverviewFragment : Fragment() {
     private var mainActivityLinker: MainActivityLinker = dummyLinker
     private lateinit var binding: FragmentTodayOverviewBinding
     private lateinit var adapter: HourlyListAdapter
+    private lateinit var broadcast: BroadcastReceiver
+    private val formatter = DateTimeFormatter.ofPattern("dd MMM")
+    private val COMMAND = "location_update"
     private val weatherViewModel: DetailedWeatherViewModel by activityViewModels()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        broadcast = WeatherBroadcastReceiver()
+        weatherViewModel.getWeatherData()
+        LocalBroadcastManager.getInstance(context!!).registerReceiver(broadcast,
+            IntentFilter(COMMAND)
+        )
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -58,6 +81,11 @@ class TodayOverviewFragment : Fragment() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalBroadcastManager.getInstance(context!!).unregisterReceiver(broadcast)
+    }
+
     private fun setupRecycleView() {
         val onItemClicked: (Int) -> Unit = {
             weatherViewModel.updateSelectedCardIndex(it)
@@ -72,7 +100,7 @@ class TodayOverviewFragment : Fragment() {
             LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.scrollToPosition(weatherViewModel.cardIndexSelected.value!!)
+        binding.recyclerView.scrollToPosition(LocalDateTimeImpl().getDateTime().hour)
     }
 
     private fun observe() {
@@ -84,12 +112,15 @@ class TodayOverviewFragment : Fragment() {
             if (it == null)
                 return@observe
             setupDetailedCard(it)
+            ForegroundService.stopService(context!!)
+            ForegroundService.startService(context!!, createNotificationMessage(it))
         }
 
         weatherViewModel.todayWeatherData.observe(viewLifecycleOwner) {
             if (it == null)
                 return@observe
             adapter.hourlyTempList = it.hourlyWeatherList
+            setupDateSubtitle(it.date)
         }
     }
 
@@ -105,8 +136,7 @@ class TodayOverviewFragment : Fragment() {
             )
             mainTemperatureValue.text = getString(
                 R.string.current_temp,
-                hourWeatherObj.tempC.toString(),
-                "°C"
+                DetailedWeatherViewModel.getTempPref(hourWeatherObj, true)
             )
             windValue.text = getString(
                 R.string.current_wind_speed,
@@ -115,8 +145,7 @@ class TodayOverviewFragment : Fragment() {
             )
             feelsLikeValue.text = getString(
                 R.string.feels_like_temp,
-                hourWeatherObj.feelsLikeC.toString(),
-                "°C"
+                DetailedWeatherViewModel.getFeelsLikeTempPref(hourWeatherObj, true)
             )
             humidityValue.text = getString(
                 R.string.humidity_value,
@@ -124,9 +153,24 @@ class TodayOverviewFragment : Fragment() {
             )
             pressureValue.text = getString(
                 R.string.detailed_card_pressure,
-                hourWeatherObj.pressureMb.toString(),
-                "mbar"
+                DetailedWeatherViewModel.getPressurePref(hourWeatherObj)
             )
         }
+    }
+
+    private fun createNotificationMessage(weather: HourWeatherModel): String {
+        var summary = ""
+        summary += "temp ${weather.tempC}°C | hum ${weather.humidity} | "
+        summary += "feels_like ${weather.feelsLikeC}°C"
+
+        return summary
+    }
+
+    private fun setupDateSubtitle(dayDate: LocalDate) {
+        val dayOfMonth = dayDate.dayOfWeek.getDisplayName(
+            TextStyle.FULL, Locale.getDefault()
+        )
+        val dateFormatted = dayDate.format(formatter)
+        binding.todayDate.text = "${dayOfMonth}, ${dateFormatted}"
     }
 }

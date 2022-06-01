@@ -1,11 +1,12 @@
 package com.example.weatherapp.ui.nextdayssummary
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.databinding.DayTemperatureCardItemBinding
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getMaxTempPref
+import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getMinTempPref
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.*
@@ -40,7 +41,8 @@ class NextDaysAdapter(
                     )
                 val dateFormatted = dayWeatherObject.date.format(formatter)
                 val dateComposed = "$dayOfMonth, $dateFormatted"
-                val tempSummary = "${defaultWeatherObject.maxTempC}°/${defaultWeatherObject.minTempC}°"
+                val tempSummary =
+                    "${getMaxTempPref(defaultWeatherObject,false)}/${getMinTempPref(defaultWeatherObject, false)}"
 
                 nextDaysIcon.setImageResource(defaultWeatherObject.weatherType.imgSrc)
                 nextDaysDate.text = dateComposed.trim()
@@ -55,7 +57,7 @@ class NextDaysAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return ViewHolder(
             DayTemperatureCardItemBinding.inflate(
-                LayoutInflater.from(parent.context)
+                LayoutInflater.from(parent.context), parent, false
             )
         )
     }

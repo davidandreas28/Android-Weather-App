@@ -15,15 +15,18 @@ import androidx.core.app.ActivityCompat
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.models.Location
+import com.example.weatherapp.core.services.ForegroundService
 import com.example.weatherapp.databinding.ActivityMainBinding
+import com.example.weatherapp.ui.SettingsFragment
 import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
 import com.example.weatherapp.ui.todayoverview.TodayOverviewFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 
 class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener,
-    TodayOverviewFragment.MainActivityLinker {
+    TodayOverviewFragment.MainActivityLinker, SettingsFragment.ToolbarSetup {
 
     private val viewModel: MainActivityViewModel by viewModels()
     private lateinit var binding: ActivityMainBinding
@@ -40,11 +43,25 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         requestLocation()
+        observe()
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
                 setReorderingAllowed(true)
                 add<TodayOverviewFragment>(R.id.fragment_container_view)
+            }
+        }
+
+        binding.bottomNavigation.setOnNavigationItemReselectedListener {
+            when(it.itemId) {
+                R.id.home -> supportFragmentManager.commit {
+                    setReorderingAllowed(true)
+                    replace<TodayOverviewFragment>(R.id.fragment_container_view)
+                }
+                else -> supportFragmentManager.commit {
+                    setReorderingAllowed(true)
+                    replace<SettingsFragment>(R.id.fragment_container_view)
+                }
             }
         }
 
@@ -65,6 +82,7 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
     }
 
     override fun onBackButtonClicked(item: MenuItem): Boolean {
+
         return when (item.itemId) {
             android.R.id.home -> {
                 onBackPressed()
@@ -72,6 +90,16 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun setupToolbar() {
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = LocationSharedPrefs.getLocationName()
+    }
+
+    override fun setupSettingsToolbar() {
+        supportActionBar?.setDisplayHomeAsUpEnabled(false)
+        supportActionBar?.title = "Settings"
     }
 
     override fun onNextDaysButtonClicked() {
@@ -90,6 +118,18 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
 
     override fun setHomeAsUp() {
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
+        supportActionBar?.title = LocationSharedPrefs.getLocationName()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        ForegroundService.stopService(this)
+    }
+
+    private fun observe() {
+        viewModel.location.observe(this) { location ->
+            LocationSharedPrefs.saveLocation(location)
+        }
     }
 
     private fun requestLocation() {
@@ -129,7 +169,7 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
             LocationManager.NETWORK_PROVIDER
-        );
+        )
     }
 
     private val updateLocation: (Location) -> Unit = { newLocation ->

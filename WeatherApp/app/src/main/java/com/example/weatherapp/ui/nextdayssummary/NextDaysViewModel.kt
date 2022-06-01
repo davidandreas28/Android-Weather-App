@@ -1,9 +1,14 @@
 package com.example.weatherapp.ui.nextdayssummary
 
 import androidx.lifecycle.*
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
+import com.example.weatherapp.core.datasources.remote.ServiceConfig
+import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.MockWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class NextDaysViewModel : ViewModel() {
 
@@ -18,17 +23,18 @@ class NextDaysViewModel : ViewModel() {
         addSource(selectedCardIndex) { value = value?.first to it }
     }
 
-    val todayBigCardData get(): LiveData<Pair<List<DayWeatherModel>, Int>> = Transformations.map(
-        _todayBigCardData
-    ) {
-        val nextDays = it.first
-        val selectedIndex = it.second
+    val todayBigCardData
+        get(): LiveData<Pair<List<DayWeatherModel>, Int>> = Transformations.map(
+            _todayBigCardData
+        ) {
+            val nextDays = it.first
+            val selectedIndex = it.second
 
-        if (nextDays == null || selectedIndex == null)
-            null
-        else
-            nextDays to selectedIndex
-    }
+            if (nextDays == null || selectedIndex == null)
+                null
+            else
+                nextDays to selectedIndex
+        }
 
     private lateinit var weatherRepository: WeatherRepository
 
@@ -38,8 +44,22 @@ class NextDaysViewModel : ViewModel() {
 
     init {
         weatherRepository = MockWeatherRepository()
-        _nextDaysData.value = weatherRepository.getNext7DaysWeatherData()
         _selectedCardIndex.value = 12
     }
 
+    fun getNextDaysWeather() {
+        val serviceConfig = ServiceConfig()
+        val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
+        val locationFormatted = "${locationData.first},${locationData.second}"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
+                serviceConfig.API_KEY,
+                locationFormatted,
+                8
+            )
+
+            _nextDaysData.postValue(weatherRepository.setNextDaysWeatherData(weatherApiResponse))
+        }
+    }
 }

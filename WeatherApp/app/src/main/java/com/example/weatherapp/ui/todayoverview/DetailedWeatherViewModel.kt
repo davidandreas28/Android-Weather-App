@@ -1,12 +1,18 @@
 package com.example.weatherapp.ui.todayoverview
 
 import androidx.lifecycle.*
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
+import com.example.weatherapp.core.datasources.local.SettingsSharedPrefs
+import com.example.weatherapp.core.datasources.remote.ServiceConfig
+import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.repositories.MockWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
 import com.example.weatherapp.core.utils.DateTime
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class DetailedWeatherViewModel : ViewModel() {
 
@@ -38,11 +44,63 @@ class DetailedWeatherViewModel : ViewModel() {
 
     init {
         weatherRepository = MockWeatherRepository()
-        _todayWeatherData.value = weatherRepository.getTodayWeatherData()
         _cardIndexSelected.value = dateTimeProvider.getDateTime().hour
     }
 
     fun updateSelectedCardIndex(index: Int) {
         _cardIndexSelected.value = index
+    }
+
+    fun getWeatherData() {
+        val serviceConfig = ServiceConfig()
+        val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
+        val locationFormatted = "${locationData.first},${locationData.second}"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
+                serviceConfig.API_KEY,
+                locationFormatted
+            )
+
+            val todayWeatherData = weatherApiResponse.forecast.forecastDay[0]
+            _todayWeatherData.postValue(weatherRepository.setTodayWeatherData(todayWeatherData))
+        }
+    }
+
+    companion object {
+        fun getTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
+            if (SettingsSharedPrefs.getTempPrefs())
+                return "${hourWeatherObj.tempC}${if (ending) "°C" else "°"}"
+            else
+                return "${hourWeatherObj.tempF}${if (ending) "°F" else "°"}"
+        }
+
+        fun getFeelsLikeTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
+            if (SettingsSharedPrefs.getTempPrefs())
+                return "${hourWeatherObj.feelsLikeC}${if (ending) "°C" else "°"}"
+            else
+                return "${hourWeatherObj.feelsLikeF}${if (ending) "°F" else "°"}"
+        }
+
+        fun getPressurePref(hourWeatherObj: HourWeatherModel): String {
+            if (SettingsSharedPrefs.getPressurePref())
+                return "${hourWeatherObj.pressureMb} mb"
+            else
+                return "${hourWeatherObj.pressureIn} in"
+        }
+
+        fun getMaxTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
+            if (SettingsSharedPrefs.getTempPrefs())
+                return "${hourWeatherObj.maxTempC.toInt()}${if (ending) "°C" else "°"}"
+            else
+                return "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
+        }
+
+        fun getMinTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
+            if (SettingsSharedPrefs.getTempPrefs())
+                return "${hourWeatherObj.minTempC.toInt()}${if (ending) "°C" else "°"}"
+            else
+                return "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
+        }
     }
 }

@@ -19,4 +19,7 @@
     <string name="now">Now</string>
     <string name="millibars_mbs">millibars (mbs)</string>
     <string name="inches_of_mercury_in">inches of mercury (in)</string>
+    <string name="celsius_c">Celsius (°C)</string>
+    <string name="fahrenheit_f">Fahrenheit (°F)</string>
+    <string name="temperature_scale">Temperature scale:</string>
 </resources>

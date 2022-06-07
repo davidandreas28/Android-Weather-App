@@ -39,6 +39,10 @@ data class HourDetails(
 
 data class WeatherCondition(
     val text: String
-)
+) {
+    fun getFormattedCondition(): String {
+        return text.replace(" ", "_").uppercase()
+    }
+}
 
 

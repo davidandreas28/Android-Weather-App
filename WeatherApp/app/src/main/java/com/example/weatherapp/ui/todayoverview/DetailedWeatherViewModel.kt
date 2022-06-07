@@ -30,15 +30,7 @@ class DetailedWeatherViewModel : ViewModel() {
     private val dateTimeProvider: DateTime = LocalDateTimeImpl()
 
     val todayBigCardData
-        get(): LiveData<HourWeatherModel> = Transformations.map(_todayBigCardData) {
-            val dayWeatherModel = it.first
-            val selectedIndex = it.second
-
-            if (dayWeatherModel == null || selectedIndex == null)
-                null
-            else
-                dayWeatherModel.hourlyWeatherList[selectedIndex]
-        }
+        get(): LiveData<Pair<DayWeatherModel?, Int?>> = _todayBigCardData
 
     private var weatherRepository: WeatherRepository
 
@@ -52,34 +44,38 @@ class DetailedWeatherViewModel : ViewModel() {
     }
 
     fun getWeatherData() {
-        val serviceConfig = ServiceConfig()
         val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
         val locationFormatted = "${locationData.first},${locationData.second}"
 
         viewModelScope.launch(Dispatchers.IO) {
-            val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
-                serviceConfig.API_KEY,
-                locationFormatted
-            )
-
-            val todayWeatherData = weatherApiResponse.forecast.forecastDay[0]
-            _todayWeatherData.postValue(weatherRepository.setTodayWeatherData(todayWeatherData))
+            requestWeatherData(locationFormatted)
         }
+    }
+
+    private suspend fun requestWeatherData(location: String) {
+        val serviceConfig = ServiceConfig()
+        val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
+            serviceConfig.API_KEY,
+            location
+        )
+        val todayWeatherData = weatherApiResponse.forecast.forecastDay[0]
+
+        _todayWeatherData.postValue(weatherRepository.setTodayWeatherData(todayWeatherData))
     }
 
     companion object {
         fun getTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            if (SettingsSharedPrefs.getTempPrefs())
-                return "${hourWeatherObj.tempC}${if (ending) "°C" else "°"}"
+            return if (SettingsSharedPrefs.getTempPrefs())
+                "${hourWeatherObj.tempC}${if (ending) "°C" else "°"}"
             else
-                return "${hourWeatherObj.tempF}${if (ending) "°F" else "°"}"
+                "${hourWeatherObj.tempF}${if (ending) "°F" else "°"}"
         }
 
         fun getFeelsLikeTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            if (SettingsSharedPrefs.getTempPrefs())
-                return "${hourWeatherObj.feelsLikeC}${if (ending) "°C" else "°"}"
+            return if (SettingsSharedPrefs.getTempPrefs())
+                "${hourWeatherObj.feelsLikeC}${if (ending) "°C" else "°"}"
             else
-                return "${hourWeatherObj.feelsLikeF}${if (ending) "°F" else "°"}"
+                "${hourWeatherObj.feelsLikeF}${if (ending) "°F" else "°"}"
         }
 
         fun getPressurePref(hourWeatherObj: HourWeatherModel): String {
@@ -90,17 +86,17 @@ class DetailedWeatherViewModel : ViewModel() {
         }
 
         fun getMaxTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            if (SettingsSharedPrefs.getTempPrefs())
-                return "${hourWeatherObj.maxTempC.toInt()}${if (ending) "°C" else "°"}"
+            return if (SettingsSharedPrefs.getTempPrefs())
+                "${hourWeatherObj.maxTempC.toInt()}${if (ending) "°C" else "°"}"
             else
-                return "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
+                "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
         }
 
         fun getMinTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            if (SettingsSharedPrefs.getTempPrefs())
-                return "${hourWeatherObj.minTempC.toInt()}${if (ending) "°C" else "°"}"
+            return if (SettingsSharedPrefs.getTempPrefs())
+                "${hourWeatherObj.minTempC.toInt()}${if (ending) "°C" else "°"}"
             else
-                return "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
+                "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
         }
     }
 }

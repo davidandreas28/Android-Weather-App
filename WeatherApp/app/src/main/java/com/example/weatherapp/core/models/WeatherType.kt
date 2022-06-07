@@ -4,6 +4,7 @@ import com.example.weatherapp.R
 
 enum class WeatherType(val imgSrc: Int) {
     SUNNY(R.drawable.ic_drizzle),
+    MODERATE_OR_HEAVY_RAIN_SHOWER(R.drawable.ic_drizzle),
     PARTLY_CLOUDY(R.drawable.ic_drizzle),
     CLOUDY(R.drawable.ic_drizzle),
     OVERCAST(R.drawable.ic_drizzle),

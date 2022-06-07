@@ -24,19 +24,9 @@ class NextDaysViewModel : ViewModel() {
     }
 
     val todayBigCardData
-        get(): LiveData<Pair<List<DayWeatherModel>, Int>> = Transformations.map(
-            _todayBigCardData
-        ) {
-            val nextDays = it.first
-            val selectedIndex = it.second
+        get(): LiveData<Pair<List<DayWeatherModel>?, Int?>> = _todayBigCardData
 
-            if (nextDays == null || selectedIndex == null)
-                null
-            else
-                nextDays to selectedIndex
-        }
-
-    private lateinit var weatherRepository: WeatherRepository
+    private var weatherRepository: WeatherRepository
 
     fun updateSelectedCardIndex(index: Int) {
         _selectedCardIndex.value = index

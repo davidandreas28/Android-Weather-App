@@ -29,7 +29,7 @@ object LocationSharedPrefs {
 
     fun getLocation():Pair<Double, Double>{
         val latitude = sharedPrefs.getFloat("latitude", 51.50f)
-        val longitude = sharedPrefs.getFloat("latitude",  -0.11f)
+        val longitude = sharedPrefs.getFloat("longitude",  -0.11f)
         return Pair(latitude.toDouble(), longitude.toDouble())
     }
 

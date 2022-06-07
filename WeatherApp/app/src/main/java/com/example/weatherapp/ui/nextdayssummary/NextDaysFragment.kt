@@ -13,6 +13,7 @@ import com.example.weatherapp.MainActivity
 
 import android.content.Context
 import android.content.Intent
+import com.example.weatherapp.R
 
 
 class NextDaysFragment : Fragment() {
@@ -45,7 +46,7 @@ class NextDaysFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val fragmentBinding = FragmentNextDaysBinding.inflate(inflater, container, false)
         binding = fragmentBinding
         nextDaysViewModel.getNextDaysWeather()
@@ -80,6 +81,7 @@ class NextDaysFragment : Fragment() {
             val intent = Intent(context, IntraDayWeatherActivity::class.java)
             intent.putExtra("itemIndex", it)
             startActivity(intent)
+            activity?.overridePendingTransition(R.anim.slide_up, R.anim.slide_down)
         }
 
         adapter = NextDaysAdapter(

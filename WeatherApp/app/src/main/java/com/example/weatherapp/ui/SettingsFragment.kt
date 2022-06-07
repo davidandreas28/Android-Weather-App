@@ -20,16 +20,16 @@ class SettingsFragment : Fragment() {
     }
 
     private val dummyLinker = object :
-        SettingsFragment.ToolbarSetup {
+        ToolbarSetup {
         override fun setupSettingsToolbar() {}
     }
 
-    private var mainActivityLinker: SettingsFragment.ToolbarSetup = dummyLinker
+    private var mainActivityLinker: ToolbarSetup = dummyLinker
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         val fragmentBinding = FragmentSettingsBinding.inflate(inflater, container, false)
         binding = fragmentBinding
         initRadioPositions()
@@ -38,16 +38,16 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         mainActivityLinker.setupSettingsToolbar()
-        binding.tempRadioGroup.setOnCheckedChangeListener { radioGroup, i ->
+        binding.tempRadioGroup.setOnCheckedChangeListener { _, i ->
             when (i) {
-                R.id.temp_radio_button_1 -> SettingsSharedPrefs.saveTempPrefs(true)
+                R.id.temp_celsius_radio -> SettingsSharedPrefs.saveTempPrefs(true)
                 else -> SettingsSharedPrefs.saveTempPrefs(false)
             }
         }
 
-        binding.pressureRadioGroup.setOnCheckedChangeListener { radioGroup, i ->
+        binding.pressureRadioGroup.setOnCheckedChangeListener { _, i ->
             when (i) {
-                R.id.pressure_radio_button_1 -> SettingsSharedPrefs.savePressurepref(true)
+                R.id.pressure_millibars_radio -> SettingsSharedPrefs.savePressurepref(true)
                 else -> SettingsSharedPrefs.savePressurepref(false)
             }
         }
@@ -61,14 +61,14 @@ class SettingsFragment : Fragment() {
     }
 
     private fun initRadioPositions() {
-        if (SettingsSharedPrefs.getTempPrefs() == true)
-            binding.tempRadioButton1.isChecked = true
+        if (SettingsSharedPrefs.getTempPrefs())
+            binding.tempCelsiusRadio.isChecked = true
         else
-            binding.tempRadioButton2.isChecked = true
+            binding.tempFahrenheitRadio.isChecked = true
 
-        if (SettingsSharedPrefs.getPressurePref() == true)
-            binding.pressureRadioButton1.isChecked = true
+        if (SettingsSharedPrefs.getPressurePref())
+            binding.pressureMillibarsRadio.isChecked = true
         else
-            binding.pressureRadioButton2.isChecked = true
+            binding.pressureMercuryRadio.isChecked = true
     }
 }

@@ -9,12 +9,12 @@ import androidx.fragment.app.commit
 import com.example.weatherapp.R
 import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 
+
 class IntraDayWeatherActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intra_day_weather)
-
         val index: Int = intent.getIntExtra("itemIndex", 0)
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
@@ -35,6 +35,7 @@ class IntraDayWeatherActivity : AppCompatActivity() {
         supportActionBar?.title = LocationSharedPrefs.getLocationName()
         toolbar.setNavigationOnClickListener {
             onBackPressed()
+            overridePendingTransition(R.anim.slide_down, R.anim.slide_down_2)
         }
     }
 

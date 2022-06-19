@@ -3,6 +3,7 @@ package com.example.weatherapp.core.models
 import com.example.weatherapp.R
 
 enum class WeatherType(val imgSrc: Int) {
+    PATCHY_LIGHT_RAIN_WITH_THUNDER(R.drawable.ic_drizzle),
     SUNNY(R.drawable.ic_drizzle),
     MODERATE_OR_HEAVY_RAIN_SHOWER(R.drawable.ic_drizzle),
     PARTLY_CLOUDY(R.drawable.ic_drizzle),

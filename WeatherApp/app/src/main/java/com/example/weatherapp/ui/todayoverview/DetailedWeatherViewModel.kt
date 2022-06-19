@@ -1,20 +1,28 @@
 package com.example.weatherapp.ui.todayoverview
 
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.datasources.local.SettingsSharedPrefs
+import com.example.weatherapp.core.datasources.local.databases.DayWeather
+import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
+import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.datasources.remote.ServiceConfig
 import com.example.weatherapp.core.datasources.remote.WeatherApi
+import com.example.weatherapp.core.datasources.remote.WeatherForecastDayDetails
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.core.models.Location
 import com.example.weatherapp.core.repositories.MockWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
 import com.example.weatherapp.core.utils.DateTime
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.weatherapp.core.utils.LocationProvider
+import kotlinx.coroutines.*
+import java.time.LocalDate
 
-class DetailedWeatherViewModel : ViewModel() {
+class DetailedWeatherViewModel(val database: WeatherDatabase) : ViewModel() {
 
     private val _todayWeatherData = MutableLiveData<DayWeatherModel>()
     val todayWeatherData get(): LiveData<DayWeatherModel?> = _todayWeatherData
@@ -32,35 +40,71 @@ class DetailedWeatherViewModel : ViewModel() {
     val todayBigCardData
         get(): LiveData<Pair<DayWeatherModel?, Int?>> = _todayBigCardData
 
-    private var weatherRepository: WeatherRepository
+    private var weatherRepository: WeatherRepository = MockWeatherRepository(database)
 
     init {
-        weatherRepository = MockWeatherRepository()
         _cardIndexSelected.value = dateTimeProvider.getDateTime().hour
+
     }
 
     fun updateSelectedCardIndex(index: Int) {
         _cardIndexSelected.value = index
     }
 
-    fun getWeatherData() {
+    fun requestLocationDetails(context: Context): Location? {
         val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
-        val locationFormatted = "${locationData.first},${locationData.second}"
+        return LocationProvider.provideLocation(context, locationData.first, locationData.second)
+    }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            requestWeatherData(locationFormatted)
+    fun provideWeatherData(context: Context) {
+        val location = requestLocationDetails(context)
+        if (location != null) {
+            updateWeatherData(LocalDate.now(), location)
         }
     }
 
-    private suspend fun requestWeatherData(location: String) {
-        val serviceConfig = ServiceConfig()
-        val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
-            serviceConfig.API_KEY,
-            location
-        )
-        val todayWeatherData = weatherApiResponse.forecast.forecastDay[0]
+    private fun setDayWeatherNewData(dayWeather: DayWeather) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val hourlyList = database.hourWeatherDao.getHourForecast(dayWeather.id).toModel()
+                _todayWeatherData.postValue(
+                    DayWeatherModel(
+                        dayWeather.date,
+                        hourlyList
+                    )
+                )
+            }
+        }
+    }
 
-        _todayWeatherData.postValue(weatherRepository.setTodayWeatherData(todayWeatherData))
+    fun updateWeatherData(date: LocalDate, location: Location) {
+
+        runBlocking(Dispatchers.IO) {
+            if (!checkWeatherIsStored(date, location.city, location.country)) {
+                val networkResponse = weatherRepository.requestWeatherData(location, 1)
+                val newData = weatherRepository.setTodayWeatherData(networkResponse.forecast.forecastDay[0])
+                weatherRepository.storeTodayWeather(newData, location)
+            }
+
+            val dayWeather =
+                database.dayWeatherDao.getDayWeather(date, location.city, location.country)
+            setDayWeatherNewData(dayWeather)
+        }
+
+    }
+
+    private suspend fun checkWeatherIsStored(
+        date: LocalDate,
+        city: String,
+        country: String
+    ): Boolean {
+
+        return withContext(Dispatchers.IO) {
+            val entryExists = async {
+                database.dayWeatherDao.checkEntryExists(date, city, country)
+            }
+            entryExists.await()
+        }
     }
 
     companion object {
@@ -99,4 +143,16 @@ class DetailedWeatherViewModel : ViewModel() {
                 "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
         }
     }
+}
+
+class DetailedWeatherViewModelFactory(private val database: WeatherDatabase) :
+    ViewModelProvider.Factory {
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(DetailedWeatherViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return DetailedWeatherViewModel(database) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+
 }

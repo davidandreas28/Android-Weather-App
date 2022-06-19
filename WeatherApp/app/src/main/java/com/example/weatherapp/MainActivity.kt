@@ -1,16 +1,13 @@
 package com.example.weatherapp
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
-import android.transition.Explode
 import android.view.MenuItem
-import android.view.Window
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
@@ -19,16 +16,24 @@ import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
-import com.example.weatherapp.core.models.HourWeatherModel
-import com.example.weatherapp.core.models.Location
-import com.example.weatherapp.core.services.ForegroundService
 import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.ui.SettingsFragment
 import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
 import com.example.weatherapp.ui.todayoverview.TodayOverviewFragment
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
-import com.google.android.material.bottomnavigation.BottomNavigationView
+
+import com.example.weatherapp.core.services.LocationUpdatesService
+
+import android.os.IBinder
+
+import android.location.Location
+import android.telecom.TelecomManager
+import android.util.Log
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+
 
 class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener,
     TodayOverviewFragment.MainActivityLinker, SettingsFragment.ToolbarSetup {
@@ -37,21 +42,50 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
     private lateinit var binding: ActivityMainBinding
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private val PERMISSION_ID = 44
+    private var mService: LocationUpdatesService? = null
+    private var mBound: Boolean = false
+    private lateinit var myReceiver: BroadcastReceiver
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            if (isGranted) {
+                Toast.makeText(this, "Location permission granted", Toast.LENGTH_SHORT).show()
+                requestLocation()
+            } else {
+                Toast.makeText(this, "Location cannot be determined.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+    // Monitors the state of the connection to the service.
+    private val serviceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder: LocationUpdatesService.LocalBinder =
+                service as LocationUpdatesService.LocalBinder
+            mService = binder.getService()
+            mBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            mService = null
+            mBound = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
+        myReceiver = MyReceiver()
         val view = binding.root
         setContentView(view)
 
-        viewModel.location.observe(this, updateLocation)
-
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        LocationUpdatesService.startService(applicationContext)
+        setSupportActionBar(binding.toolbar)
+        setupBottomNavigation()
         requestLocation()
         observe()
-
-
-        ForegroundService.startService(this, createNotificationMessage())
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
@@ -59,64 +93,30 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
                 add<TodayOverviewFragment>(R.id.fragment_container_view)
             }
         }
-
-        binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.home -> {
-                    supportFragmentManager.commit {
-                        setCustomAnimations(
-                            R.anim.slide_in_left,
-                            R.anim.fade_out_right,
-                            R.anim.fade_in,
-                            R.anim.slide_out
-                        )
-                        setReorderingAllowed(true)
-                        supportFragmentManager.popBackStack(0, POP_BACK_STACK_INCLUSIVE)
-                        replace<TodayOverviewFragment>(R.id.fragment_container_view)
-                    }
-                    true
-                }
-                R.id.settings -> {
-                    supportFragmentManager.commit {
-                        setCustomAnimations(
-                            R.anim.slide_in,
-                            R.anim.fade_out,
-                            R.anim.fade_in,
-                            R.anim.slide_out
-                        )
-                        supportFragmentManager.popBackStack(0, POP_BACK_STACK_INCLUSIVE)
-                        setReorderingAllowed(true)
-                        replace<SettingsFragment>(R.id.fragment_container_view)
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
-
-        binding.bottomNavigation.setOnItemReselectedListener { item ->
-            when(item.itemId) {
-                R.id.home -> {}
-                R.id.settings -> {}
-                else -> {}
-            }
-        }
-
-        setSupportActionBar(binding.toolbar)
-
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String?>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_ID) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                requestLocation()
-            }
-        }
+    override fun onStart() {
+        super.onStart()
+        val intent = Intent(this, LocationUpdatesService::class.java)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        LocalBroadcastManager.getInstance(applicationContext).registerReceiver(
+            myReceiver,
+            IntentFilter(LocationUpdatesService.ACTION_BROADCAST)
+        )
+    }
+
+    override fun onPause() {
+        LocalBroadcastManager.getInstance(applicationContext).unregisterReceiver(myReceiver)
+        super.onPause()
+    }
+
+    override fun onStop() {
+        unbindService(serviceConnection)
+        super.onStop()
     }
 
     override fun onBackButtonClicked(item: MenuItem): Boolean {
@@ -161,46 +161,88 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
 
     override fun onDestroy() {
         super.onDestroy()
-        ForegroundService.stopService(this)
+        LocationUpdatesService.stopService(applicationContext)
     }
 
     private fun observe() {
         viewModel.location.observe(this) { location ->
-            LocationSharedPrefs.saveLocation(location)
+            if (supportActionBar?.title != "Settings") {
+                supportActionBar?.title = location.asString()
+            }
+        }
+    }
+
+    private fun setupBottomNavigation() {
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.home -> {
+                    supportFragmentManager.commit {
+                        setCustomAnimations(
+                            R.anim.slide_in_left,
+                            R.anim.fade_out_right,
+                            R.anim.fade_in,
+                            R.anim.slide_out
+                        )
+                        setReorderingAllowed(true)
+                        supportFragmentManager.popBackStack(0, POP_BACK_STACK_INCLUSIVE)
+                        replace<TodayOverviewFragment>(R.id.fragment_container_view)
+                    }
+                    true
+                }
+                R.id.settings -> {
+                    supportFragmentManager.commit {
+                        setCustomAnimations(
+                            R.anim.slide_in,
+                            R.anim.fade_out,
+                            R.anim.fade_in,
+                            R.anim.slide_out
+                        )
+                        supportFragmentManager.popBackStack(0, POP_BACK_STACK_INCLUSIVE)
+                        setReorderingAllowed(true)
+                        replace<SettingsFragment>(R.id.fragment_container_view)
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+
+        binding.bottomNavigation.setOnItemReselectedListener { item ->
+            when (item.itemId) {
+                R.id.home -> {
+                }
+                R.id.settings -> {
+                }
+                else -> {
+                }
+            }
         }
     }
 
     private fun requestLocation() {
-        if (!checkPermission()) {
-            requirePermissions()
-            return
+        when (PackageManager.PERMISSION_GRANTED) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) -> {
+                if (!isLocationEnabled()) {
+                    val intent = Intent(ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent)
+                }
+
+                fusedLocationProviderClient.lastLocation.addOnCompleteListener {
+                    val location = it.result
+                    if (location != null) {
+                        viewModel.setLocation(this, location.latitude, location.longitude)
+                    }
+                }
+            }
+            else -> {
+                requestPermissionLauncher.launch(
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            }
         }
-
-        if (!isLocationEnabled()) {
-            Toast.makeText(this, "Please enable location.", Toast.LENGTH_LONG).show();
-            val intent = Intent(ACTION_LOCATION_SOURCE_SETTINGS);
-            startActivity(intent);
-        }
-
-        fusedLocationProviderClient.lastLocation.addOnCompleteListener {
-            val location = it.result
-            viewModel.setLocation(this, location.latitude, location.longitude)
-        }
-    }
-
-    private fun requirePermissions() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-            PERMISSION_ID
-        );
-    }
-
-    private fun checkPermission(): Boolean {
-        return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun isLocationEnabled(): Boolean {
@@ -210,12 +252,11 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
         )
     }
 
-    private val updateLocation: (Location) -> Unit = { newLocation ->
-        val updatedToolbarTitle = newLocation.asString()
-        binding.toolbar.title = updatedToolbarTitle
-    }
-
-    private fun createNotificationMessage(): String {
-        return "Weather App runs in background."
+    inner class MyReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val location: Location =
+                intent.extras?.get(TelecomManager.EXTRA_LOCATION) as Location
+            viewModel.setLocation(context, location.latitude, location.longitude)
+        }
     }
 }

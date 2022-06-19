@@ -1,16 +1,22 @@
 package com.example.weatherapp.ui.nextdayssummary
 
+import android.content.Context
 import androidx.lifecycle.*
 import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
+import com.example.weatherapp.core.datasources.local.databases.DayWeather
+import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
+import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.datasources.remote.ServiceConfig
 import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.core.models.Location
 import com.example.weatherapp.core.repositories.MockWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import com.example.weatherapp.core.utils.LocationProvider
+import kotlinx.coroutines.*
+import java.time.LocalDate
 
-class NextDaysViewModel : ViewModel() {
+class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
 
     private val _nextDaysData = MutableLiveData<List<DayWeatherModel>>()
     val nextDaysData get(): LiveData<List<DayWeatherModel>> = _nextDaysData
@@ -33,23 +39,69 @@ class NextDaysViewModel : ViewModel() {
     }
 
     init {
-        weatherRepository = MockWeatherRepository()
+        weatherRepository = MockWeatherRepository(database)
         _selectedCardIndex.value = 12
     }
 
-    fun getNextDaysWeather() {
-        val serviceConfig = ServiceConfig()
+    fun provideWeatherData(context: Context) {
+        val location = requestLocationDetails(context)
+        if (location != null) {
+            updateWeatherData(LocalDate.now(), location)
+        }
+    }
+
+    private fun requestLocationDetails(context: Context): Location? {
         val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
-        val locationFormatted = "${locationData.first},${locationData.second}"
+        return LocationProvider.provideLocation(context, locationData.first, locationData.second)
+    }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            val weatherApiResponse = WeatherApi.retrofitService.getWeatherData(
-                serviceConfig.API_KEY,
-                locationFormatted,
-                8
-            )
+    private fun updateWeatherData(now: LocalDate, location: Location) {
+        runBlocking(Dispatchers.IO) {
+            if (!checkWeatherIsStored(now, location.city, location.country)) {
+                val networkResponse = weatherRepository.requestWeatherData(location, 8)
+                val newData = weatherRepository.setNextDaysWeatherData(networkResponse)
+                weatherRepository.storeNextDaysWeather(newData, location)
+            }
 
-            _nextDaysData.postValue(weatherRepository.setNextDaysWeatherData(weatherApiResponse))
+            val dayWeatherList =
+                database.dayWeatherDao.getAllDayWeather(location.city, location.country)
+            setNextDaysWeatherData(dayWeatherList)
+        }
+    }
+
+    private fun setNextDaysWeatherData(dayWeatherList: List<DayWeather>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val dayWeatherModelList = mutableListOf<DayWeatherModel>()
+
+                for (dayWeatherObj in dayWeatherList.subList(1, dayWeatherList.size)) {
+                    val hourlyList =
+                        database.hourWeatherDao.getHourForecast(dayWeatherObj.id).toModel()
+
+                    dayWeatherModelList.add(
+                        DayWeatherModel(
+                            dayWeatherObj.date,
+                            hourlyList
+                        )
+                    )
+                }
+                _nextDaysData.postValue(dayWeatherModelList)
+            }
+        }
+    }
+
+    private suspend fun checkWeatherIsStored(
+        date: LocalDate,
+        city: String,
+        country: String
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            val entryExists = async {
+                val startDate = date.plusDays(1)
+                val endDate = date.plusDays(7)
+                database.dayWeatherDao.checkNextDaysStored(startDate, endDate, city, country)
+            }
+            entryExists.await()
         }
     }
 }

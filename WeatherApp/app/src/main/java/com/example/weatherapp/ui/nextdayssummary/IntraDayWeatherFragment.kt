@@ -11,6 +11,7 @@ import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.ui.MyApplication
 import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getFeelsLikeTempPref
 import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getPressurePref
 import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getTempPref
@@ -20,7 +21,11 @@ class IntraDayWeatherFragment : Fragment() {
 
     private lateinit var binding: FragmentIntraDayWeatherBinding
     private lateinit var adapter: HourlyListAdapter
-    private val nextDaysViewModel: NextDaysViewModel by viewModels()
+    private val nextDaysViewModel: NextDaysViewModel by viewModels {
+        NextDaysViewModelModelFactory(
+            (activity?.application as MyApplication).database
+        )
+    }
     private var currentDayData: List<DayWeatherModel> = listOf()
 
     override fun onCreateView(
@@ -30,12 +35,12 @@ class IntraDayWeatherFragment : Fragment() {
 
         val fragmentBinding = FragmentIntraDayWeatherBinding.inflate(inflater, container, false)
         binding = fragmentBinding
-        nextDaysViewModel.getNextDaysWeather()
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        nextDaysViewModel.provideWeatherData(context!!)
         val index = requireArguments().getInt("itemIndex")
         observe(index)
         setupRecycleView()

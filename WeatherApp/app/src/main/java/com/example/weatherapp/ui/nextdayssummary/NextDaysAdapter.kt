@@ -57,11 +57,13 @@ class NextDaysAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.bind(
-            weatherData[position],
-            position,
-            onItemClicked
-        )
+        if (position in weatherData.indices) {
+            holder.bind(
+                weatherData[position],
+                position,
+                onItemClicked
+            )
+        }
     }
 
     override fun getItemCount(): Int = weatherData.size

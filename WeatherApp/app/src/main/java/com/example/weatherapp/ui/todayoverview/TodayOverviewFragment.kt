@@ -1,10 +1,9 @@
 package com.example.weatherapp.ui.todayoverview
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,17 +12,16 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
+import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.services.WeatherBroadcastReceiver
 import com.example.weatherapp.core.models.HourWeatherModel
-import com.example.weatherapp.core.services.ForegroundService
-import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
+import com.example.weatherapp.ui.MyApplication
 import java.time.LocalDate
-import java.time.format.TextStyle
 import java.util.*
 
-class TodayOverviewFragment : Fragment() {
+class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
 
     interface MainActivityLinker {
         fun onNextDaysButtonClicked()
@@ -41,16 +39,27 @@ class TodayOverviewFragment : Fragment() {
 
     private var mainActivityLinker: MainActivityLinker = dummyLinker
     private val COMMAND = "location_update"
-    private val weatherViewModel: DetailedWeatherViewModel by activityViewModels()
+    private val viewModel: DetailedWeatherViewModel by activityViewModels {
+        DetailedWeatherViewModelFactory(
+            (activity?.application as MyApplication).database
+        )
+    }
+
+    override fun onSharedPreferenceChanged(p0: SharedPreferences?, p1: String?) {
+        if (p1 != null && context != null) {
+            viewModel.provideWeatherData(context!!)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         broadcast = WeatherBroadcastReceiver()
-        weatherViewModel.getWeatherData()
+        LocationSharedPrefs.registerListener(this)
         LocalBroadcastManager.getInstance(context!!).registerReceiver(
             broadcast,
             IntentFilter(COMMAND)
         )
+        viewModel.provideWeatherData(context!!)
     }
 
     override fun onCreateView(
@@ -89,7 +98,7 @@ class TodayOverviewFragment : Fragment() {
 
     private fun setupRecycleView() {
         val onItemClicked: (Int) -> Unit = {
-            weatherViewModel.updateSelectedCardIndex(it)
+            viewModel.updateSelectedCardIndex(it)
         }
 
         adapter = HourlyListAdapter(
@@ -104,11 +113,12 @@ class TodayOverviewFragment : Fragment() {
     }
 
     private fun observe() {
-        weatherViewModel.cardIndexSelected.observe(viewLifecycleOwner) {
+
+        viewModel.cardIndexSelected.observe(viewLifecycleOwner) {
             adapter.selectedIndex = it
         }
 
-        weatherViewModel.todayBigCardData.observe(viewLifecycleOwner) {
+        viewModel.todayBigCardData.observe(viewLifecycleOwner) {
             if (it?.first == null || it.second == null)
                 return@observe
             setupDetailedCard(it.first!!.hourlyWeatherList[it.second!!])
@@ -116,7 +126,7 @@ class TodayOverviewFragment : Fragment() {
 
         }
 
-        weatherViewModel.todayWeatherData.observe(viewLifecycleOwner) {
+        viewModel.todayWeatherData.observe(viewLifecycleOwner) {
             if (it == null)
                 return@observe
             adapter.hourlyTempList = it.hourlyWeatherList

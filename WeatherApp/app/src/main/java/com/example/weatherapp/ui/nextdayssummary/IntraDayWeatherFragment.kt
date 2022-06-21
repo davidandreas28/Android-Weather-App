@@ -40,7 +40,8 @@ class IntraDayWeatherFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        nextDaysViewModel.provideWeatherData(context!!)
+        val location = context?.let { nextDaysViewModel.requestLocationDetails(it) }
+        location?.let { nextDaysViewModel.provideWeatherData(location) }
         val index = requireArguments().getInt("itemIndex")
         observe(index)
         setupRecycleView()

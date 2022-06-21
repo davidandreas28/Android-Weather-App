@@ -47,7 +47,8 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
 
     override fun onSharedPreferenceChanged(p0: SharedPreferences?, p1: String?) {
         if (p1 != null && context != null) {
-            viewModel.provideWeatherData(context!!)
+            val location = viewModel.requestLocationDetails(context!!)
+            location?.let { viewModel.provideWeatherData(location) }
         }
     }
 
@@ -59,7 +60,8 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
             broadcast,
             IntentFilter(COMMAND)
         )
-        viewModel.provideWeatherData(context!!)
+        val location = viewModel.requestLocationDetails(context!!)
+        location?.let { viewModel.provideWeatherData(location) }
     }
 
     override fun onCreateView(

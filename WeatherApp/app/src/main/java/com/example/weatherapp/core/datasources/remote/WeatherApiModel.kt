@@ -35,7 +35,7 @@ data class HourDetails(
     @Json(name = "feelslike_c") val feelsLikeC: Float,
     @Json(name = "feelslike_f") val feelsLikeF: Float,
     val humidity: Int
-    )
+)
 
 data class WeatherCondition(
     val text: String

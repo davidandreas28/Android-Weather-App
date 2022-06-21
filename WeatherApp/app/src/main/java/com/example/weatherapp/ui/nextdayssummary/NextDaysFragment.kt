@@ -50,7 +50,6 @@ class NextDaysFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        onClickListener.setupToolbar()
     }
 
     override fun onCreateView(
@@ -64,7 +63,9 @@ class NextDaysFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        nextDaysViewModel.provideWeatherData(context!!)
+        val location = context?.let { nextDaysViewModel.requestLocationDetails(it) }
+        location?.let { nextDaysViewModel.provideWeatherData(location) }
+        onClickListener.setupToolbar()
         setupRecycleView()
         observe()
     }

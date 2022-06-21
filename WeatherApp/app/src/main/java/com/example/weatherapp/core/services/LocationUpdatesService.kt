@@ -34,9 +34,11 @@ class LocationUpdatesService : Service() {
     private val mBinder: LocalBinder = LocalBinder()
     private var mChangingConfiguration = false
     private val NOTIFICATION_ID = 12345678
+    private val BASE_INTERVAL: Long = 20000
+    private val FAST_INTERVAL: Long = 10000
 
     companion object {
-        private val TAG = javaClass.simpleName
+        private val TAG = LocationUpdatesService::class.java.simpleName
         val ACTION_BROADCAST = "location_broadcast"
 
 
@@ -120,7 +122,6 @@ class LocationUpdatesService : Service() {
     }
 
     fun onNewLocation(location: Location) {
-        Log.i(TAG, "New location: $location")
 
         // Notify anyone listening for broadcasts about the new location.
         val intent = Intent(ACTION_BROADCAST)
@@ -135,8 +136,8 @@ class LocationUpdatesService : Service() {
 
     private fun createLocationRequest(): LocationRequest {
         return LocationRequest.create().apply {
-            interval = 10000
-            fastestInterval = 5000
+            interval = BASE_INTERVAL
+            fastestInterval = FAST_INTERVAL
             priority = PRIORITY_HIGH_ACCURACY
         }
     }

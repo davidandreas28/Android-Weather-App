@@ -15,9 +15,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
-class MockWeatherRepository(private val database: WeatherDatabase) : WeatherRepository {
+class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepository {
 
-    override fun setTodayWeatherData(weatherData: WeatherForecastDayDetails): DayWeatherModel {
+    override fun setOneDayWeatherData(weatherData: WeatherForecastDayDetails): DayWeatherModel {
         val weatherDataHourList: MutableList<HourWeatherModel> = mutableListOf()
         val date = LocalDate.parse(weatherData.date)
         val dayDetails = weatherData.day
@@ -50,12 +50,12 @@ class MockWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         )
     }
 
-    override fun setNextDaysWeatherData(weatherData: WeatherApiModel): List<DayWeatherModel> {
+    override fun setMultipleDayWeatherData(weatherData: WeatherApiModel): List<DayWeatherModel> {
         val nextDaysWeatherList: MutableList<DayWeatherModel> = mutableListOf()
         val weatherDataObj = weatherData.forecast.forecastDay
 
         for (weatherApiObj in weatherDataObj.subList(1, weatherDataObj.size)) {
-            val dayWeatherDetails = setTodayWeatherData(weatherApiObj)
+            val dayWeatherDetails = setOneDayWeatherData(weatherApiObj)
             nextDaysWeatherList.add(dayWeatherDetails)
         }
         return nextDaysWeatherList

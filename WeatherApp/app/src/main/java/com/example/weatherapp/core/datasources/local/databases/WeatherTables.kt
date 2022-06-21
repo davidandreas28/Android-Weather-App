@@ -4,8 +4,6 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.ForeignKey.CASCADE
 import androidx.room.PrimaryKey
-import androidx.room.TypeConverters
-import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.models.WeatherType
 import java.time.LocalDate

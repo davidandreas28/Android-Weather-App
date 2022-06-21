@@ -6,12 +6,12 @@ import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
-import com.example.weatherapp.core.datasources.remote.ServiceConfig
-import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.Location
-import com.example.weatherapp.core.repositories.MockWeatherRepository
+import com.example.weatherapp.core.repositories.MainWeatherRepository
 import com.example.weatherapp.core.repositories.WeatherRepository
+import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import com.example.weatherapp.core.utils.LocationProvider
 import kotlinx.coroutines.*
 import java.time.LocalDate
@@ -32,25 +32,22 @@ class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
     val todayBigCardData
         get(): LiveData<Pair<List<DayWeatherModel>?, Int?>> = _todayBigCardData
 
-    private var weatherRepository: WeatherRepository
+    private val dateTimeProvider: DateTime = LocalDateTimeImpl()
+    private var weatherRepository: WeatherRepository = MainWeatherRepository(database)
 
     fun updateSelectedCardIndex(index: Int) {
         _selectedCardIndex.value = index
     }
 
     init {
-        weatherRepository = MockWeatherRepository(database)
         _selectedCardIndex.value = 12
     }
 
-    fun provideWeatherData(context: Context) {
-        val location = requestLocationDetails(context)
-        if (location != null) {
-            updateWeatherData(LocalDate.now(), location)
-        }
+    fun provideWeatherData(location: Location) {
+        updateWeatherData(dateTimeProvider.getDateTime().toLocalDate(), location)
     }
 
-    private fun requestLocationDetails(context: Context): Location? {
+    fun requestLocationDetails(context: Context): Location? {
         val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
         return LocationProvider.provideLocation(context, locationData.first, locationData.second)
     }
@@ -59,7 +56,7 @@ class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
         runBlocking(Dispatchers.IO) {
             if (!checkWeatherIsStored(now, location.city, location.country)) {
                 val networkResponse = weatherRepository.requestWeatherData(location, 8)
-                val newData = weatherRepository.setNextDaysWeatherData(networkResponse)
+                val newData = weatherRepository.setMultipleDayWeatherData(networkResponse)
                 weatherRepository.storeNextDaysWeather(newData, location)
             }
 

@@ -23,7 +23,7 @@ object LocationSharedPrefs {
         )
     }
 
-    fun saveLocation(location: Location){
+    fun saveLocation(location: Location) {
         //write into sharedPrefs
         with(sharedPrefs.edit()) {
             Log.i("LOCATION_PREF_ACTION", "saving ${location.asString()}")
@@ -34,9 +34,9 @@ object LocationSharedPrefs {
         }
     }
 
-    fun getLocation():Pair<Double, Double>{
+    fun getLocation(): Pair<Double, Double> {
         val latitude = sharedPrefs.getFloat("latitude", DEFAULT_LATITUDE)
-        val longitude = sharedPrefs.getFloat("longitude",  DEFAULT_LONGITUDE)
+        val longitude = sharedPrefs.getFloat("longitude", DEFAULT_LONGITUDE)
         return Pair(latitude.toDouble(), longitude.toDouble())
     }
 

@@ -9,13 +9,14 @@ import com.example.weatherapp.core.datasources.remote.WeatherApiModel
 import com.example.weatherapp.core.datasources.remote.WeatherForecastDayDetails
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
-import com.example.weatherapp.core.models.Location
 import com.example.weatherapp.core.models.WeatherType
+import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.ZoneOffset
 
-class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepository {
+class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepositoryInterface {
 
     override fun setOneDayWeatherData(weatherData: WeatherForecastDayDetails): DayWeatherModel {
         val weatherDataHourList: MutableList<HourWeatherModel> = mutableListOf()
@@ -61,7 +62,7 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         return nextDaysWeatherList
     }
 
-    override suspend fun requestWeatherData(location: Location, days: Int): WeatherApiModel {
+    override suspend fun requestWeatherData(location: LocationData, days: Int): WeatherApiModel {
 
         return withContext(Dispatchers.IO) {
             val serviceConfig = ServiceConfig()
@@ -73,12 +74,16 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         }
     }
 
-    override suspend fun storeTodayWeather(dayWeatherModel: DayWeatherModel, location: Location) {
+    override suspend fun storeTodayWeather(
+        dayWeatherModel: DayWeatherModel,
+        location: LocationData
+    ) {
         withContext(Dispatchers.IO) {
             val dayWeatherObj = DayWeather(
                 date = dayWeatherModel.date,
                 city = location.city,
-                country = location.country
+                country = location.country,
+                createdAt = LocalDateTimeImpl.getDateTime().toEpochSecond(ZoneOffset.UTC)
             )
             val id = database.dayWeatherDao.insertOne(dayWeatherObj)
 
@@ -108,7 +113,7 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
 
     override suspend fun storeNextDaysWeather(
         dayWeatherList: List<DayWeatherModel>,
-        location: Location
+        location: LocationData
     ) {
         for (dayWeatherObj in dayWeatherList) {
             storeTodayWeather(dayWeatherObj, location)

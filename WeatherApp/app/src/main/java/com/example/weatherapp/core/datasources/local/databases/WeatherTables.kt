@@ -13,7 +13,8 @@ data class DayWeather(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val date: LocalDate,
     val city: String,
-    val country: String
+    val country: String,
+    val createdAt: Long
 )
 
 @Entity(

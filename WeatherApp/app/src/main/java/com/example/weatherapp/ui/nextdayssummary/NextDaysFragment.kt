@@ -13,20 +13,18 @@ import com.example.weatherapp.MainActivity
 
 import android.content.Context
 import android.content.Intent
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.weatherapp.R
-import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
+import com.example.weatherapp.core.repositories.LocationRepository
+import com.example.weatherapp.core.repositories.UserPreferencesRepository
+import com.example.weatherapp.core.repositories.asString
 import com.example.weatherapp.ui.MyApplication
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModelFactory
 
 
 class NextDaysFragment : Fragment() {
 
     interface OnItemClickedListener {
         fun onBackButtonClicked(item: MenuItem): Boolean
-        fun setupToolbar()
+        fun setupToolbar(title: String)
     }
 
     private val sDummyCallbacks: OnItemClickedListener = object : OnItemClickedListener {
@@ -34,7 +32,7 @@ class NextDaysFragment : Fragment() {
             return false
         }
 
-        override fun setupToolbar() {
+        override fun setupToolbar(title: String) {
             return
         }
     }
@@ -42,8 +40,10 @@ class NextDaysFragment : Fragment() {
     private lateinit var adapter: NextDaysAdapter
     private lateinit var binding: FragmentNextDaysBinding
     private val nextDaysViewModel: NextDaysViewModel by viewModels {
-        NextDaysViewModelModelFactory(
-            (activity?.application as MyApplication).database
+        NextDaysViewModelFactory(
+            (activity?.application as MyApplication).database,
+            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
+            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
         )
     }
 
@@ -63,9 +63,6 @@ class NextDaysFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val location = context?.let { nextDaysViewModel.requestLocationDetails(it) }
-        location?.let { nextDaysViewModel.provideWeatherData(location) }
-        onClickListener.setupToolbar()
         setupRecycleView()
         observe()
     }
@@ -85,6 +82,19 @@ class NextDaysFragment : Fragment() {
         nextDaysViewModel.nextDaysData.observe(viewLifecycleOwner) {
             adapter.weatherData = it
         }
+
+        nextDaysViewModel.todayBigCardData.observe(viewLifecycleOwner) {
+            if (it.first == null || it.second == null || it.third == null) {
+                return@observe
+            }
+            adapter.userPreferences = it.third!!
+        }
+
+        nextDaysViewModel.locationData.observe(viewLifecycleOwner) {
+            nextDaysViewModel.provideWeatherData(it)
+            onClickListener.setupToolbar(it.asString())
+        }
+
     }
 
     private fun setupRecycleView() {
@@ -103,16 +113,4 @@ class NextDaysFragment : Fragment() {
         binding.recyclerView.adapter = adapter
         binding.recyclerView.setHasFixedSize(true)
     }
-}
-
-class NextDaysViewModelModelFactory(private val database: WeatherDatabase) :
-    ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(NextDaysViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return NextDaysViewModel(database) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-
 }

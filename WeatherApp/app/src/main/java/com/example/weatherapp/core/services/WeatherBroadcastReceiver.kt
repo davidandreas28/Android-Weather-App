@@ -13,6 +13,10 @@ class WeatherBroadcastReceiver : BroadcastReceiver() {
     override fun onReceive(p0: Context?, p1: Intent?) {
         val locationResp = p1?.extras?.get(TelecomManager.EXTRA_LOCATION) as Location
         Log.i("BROADCAST_RECEIVED", "${locationResp.latitude}, ${locationResp.longitude}")
-        Toast.makeText(p0, "${locationResp.latitude}, ${locationResp.longitude}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            p0,
+            "${locationResp.latitude}, ${locationResp.longitude}",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }

@@ -4,15 +4,25 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.core.repositories.UserPreferences
+import com.example.weatherapp.core.utils.Utils.Companion.getMaxTempPref
+import com.example.weatherapp.core.utils.Utils.Companion.getMinTempPref
 import com.example.weatherapp.databinding.DayTemperatureCardItemBinding
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getMaxTempPref
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getMinTempPref
 
 class NextDaysAdapter(
     private val onItemClicked: (Int) -> Unit
 ) : RecyclerView.Adapter<NextDaysAdapter.ViewHolder>() {
 
     var weatherData: List<DayWeatherModel> = listOf()
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
+    var userPreferences: UserPreferences = UserPreferences(
+        celsiusTempPref = true,
+        mbPressurePref = true
+    )
         set(value) {
             field = value
             notifyDataSetChanged()
@@ -26,14 +36,22 @@ class NextDaysAdapter(
         fun bind(
             dayWeatherObject: DayWeatherModel,
             position: Int,
-            onItemClicked: (Int) -> Unit
+            onItemClicked: (Int) -> Unit,
+            userPreferences: UserPreferences
         ) {
             with(binding) {
                 val defaultWeatherObject = dayWeatherObject.hourlyWeatherList[DEFAULT_CARD_POS]
                 val tempSummary =
-                    "${getMaxTempPref(defaultWeatherObject, false)}/${
+                    "${
+                        getMaxTempPref(
+                            defaultWeatherObject,
+                            userPreferences,
+                            false
+                        )
+                    }/${
                         getMinTempPref(
                             defaultWeatherObject,
+                            userPreferences,
                             false
                         )
                     }"
@@ -61,7 +79,8 @@ class NextDaysAdapter(
             holder.bind(
                 weatherData[position],
                 position,
-                onItemClicked
+                onItemClicked,
+                userPreferences
             )
         }
     }

@@ -6,14 +6,19 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.fragment.app.activityViewModels
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
-import com.example.weatherapp.core.datasources.local.SettingsSharedPrefs
+import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.databinding.FragmentSettingsBinding
-import com.example.weatherapp.ui.todayoverview.TodayOverviewFragment
 
 class SettingsFragment : Fragment() {
     private lateinit var binding: FragmentSettingsBinding
+    private val viewModel: SettingsViewModel by activityViewModels {
+        SettingsViewModelFactory(
+            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref)
+        )
+    }
 
     interface ToolbarSetup {
         fun setupSettingsToolbar()
@@ -40,15 +45,15 @@ class SettingsFragment : Fragment() {
         mainActivityLinker.setupSettingsToolbar()
         binding.tempRadioGroup.setOnCheckedChangeListener { _, i ->
             when (i) {
-                R.id.temp_celsius_radio -> SettingsSharedPrefs.saveTempPrefs(true)
-                else -> SettingsSharedPrefs.saveTempPrefs(false)
+                R.id.temp_celsius_radio -> viewModel.updateTempPref(true)
+                else -> viewModel.updateTempPref(false)
             }
         }
 
         binding.pressureRadioGroup.setOnCheckedChangeListener { _, i ->
             when (i) {
-                R.id.pressure_millibars_radio -> SettingsSharedPrefs.savePressurepref(true)
-                else -> SettingsSharedPrefs.savePressurepref(false)
+                R.id.pressure_millibars_radio -> viewModel.updatePressurePref(true)
+                else -> viewModel.updatePressurePref(false)
             }
         }
     }
@@ -61,14 +66,17 @@ class SettingsFragment : Fragment() {
     }
 
     private fun initRadioPositions() {
-        if (SettingsSharedPrefs.getTempPrefs())
-            binding.tempCelsiusRadio.isChecked = true
-        else
-            binding.tempFahrenheitRadio.isChecked = true
-
-        if (SettingsSharedPrefs.getPressurePref())
-            binding.pressureMillibarsRadio.isChecked = true
-        else
-            binding.pressureMercuryRadio.isChecked = true
+        viewModel.preferencesLiveData.observe(this) {
+            if (it.celsiusTempPref) {
+                binding.tempCelsiusRadio.isChecked = true
+            } else {
+                binding.tempFahrenheitRadio.isChecked = true
+            }
+            if (it.mbPressurePref) {
+                binding.pressureMillibarsRadio.isChecked = true
+            } else {
+                binding.pressureMercuryRadio.isChecked = true
+            }
+        }
     }
 }

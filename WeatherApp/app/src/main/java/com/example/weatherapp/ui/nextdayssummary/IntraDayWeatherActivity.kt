@@ -6,19 +6,29 @@ import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
+import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
 import androidx.core.os.bundleOf
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
+import com.example.weatherapp.MainActivityViewModel
+import com.example.weatherapp.MainActivityViewModelFactory
 import com.example.weatherapp.R
-import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
+import com.example.weatherapp.core.repositories.LocationRepository
+import com.example.weatherapp.core.repositories.asString
 import com.example.weatherapp.core.services.LocationUpdatesService
+import com.example.weatherapp.ui.MyApplication
 
 
 class IntraDayWeatherActivity : AppCompatActivity() {
 
     private var mService: LocationUpdatesService? = null
     private var mBound: Boolean = false
+    private val viewModel: MainActivityViewModel by viewModels {
+        MainActivityViewModelFactory(
+            LocationRepository((application as MyApplication).dataStoreLocation)
+        )
+    }
 
     // Monitors the state of the connection to the service.
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
@@ -48,6 +58,13 @@ class IntraDayWeatherActivity : AppCompatActivity() {
         }
 
         setupActionBar()
+        observe()
+    }
+
+    private fun observe() {
+        viewModel.location.observe(this) {
+            setupActionBarTitle(it.asString())
+        }
     }
 
     override fun onStart() {
@@ -61,12 +78,15 @@ class IntraDayWeatherActivity : AppCompatActivity() {
         super.onStop()
     }
 
+    fun setupActionBarTitle(title: String) {
+        supportActionBar?.title = title
+    }
+
     fun setupActionBar() {
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_baseline_close_24)
-        supportActionBar?.title = LocationSharedPrefs.getLocationName()
         toolbar.setNavigationOnClickListener {
             onBackPressed()
             overridePendingTransition(R.anim.slide_down, R.anim.slide_down_2)

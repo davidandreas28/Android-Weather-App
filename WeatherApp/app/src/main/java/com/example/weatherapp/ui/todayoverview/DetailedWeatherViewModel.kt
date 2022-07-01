@@ -1,24 +1,25 @@
 package com.example.weatherapp.ui.todayoverview
 
-import android.content.Context
 import androidx.lifecycle.*
-import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
-import com.example.weatherapp.core.datasources.local.SettingsSharedPrefs
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.models.DayWeatherModel
-import com.example.weatherapp.core.models.HourWeatherModel
-import com.example.weatherapp.core.models.Location
-import com.example.weatherapp.core.repositories.MainWeatherRepository
-import com.example.weatherapp.core.repositories.WeatherRepository
-import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
-import com.example.weatherapp.core.utils.LocationProvider
 import kotlinx.coroutines.*
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
-class DetailedWeatherViewModel(val database: WeatherDatabase) : ViewModel() {
+class DetailedWeatherViewModel(
+    val database: WeatherDatabase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val locationRepository: LocationRepository
+) : ViewModel() {
+
+    private val BASE_STALE_PERIOD = 5 // in hours
 
     private val _todayWeatherData = MutableLiveData<DayWeatherModel>()
     val todayWeatherData get(): LiveData<DayWeatherModel?> = _todayWeatherData
@@ -26,64 +27,70 @@ class DetailedWeatherViewModel(val database: WeatherDatabase) : ViewModel() {
     private val _cardIndexSelected = MutableLiveData<Int?>()
     val cardIndexSelected get(): LiveData<Int?> = _cardIndexSelected
 
-    private val _todayBigCardData = MediatorLiveData<Pair<DayWeatherModel?, Int?>>().apply {
-        addSource(todayWeatherData) { value = it to (value?.second) }
-        addSource(cardIndexSelected) { value = Pair(value?.first, it) }
-    }
+    val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
 
-    private val dateTimeProvider: DateTime = LocalDateTimeImpl()
+    val locationData = locationRepository.locationData.asLiveData()
+
+    private val _todayBigCardData =
+        MediatorLiveData<Triple<DayWeatherModel?, Int?, UserPreferences?>>().apply {
+            addSource(todayWeatherData) { value = Triple(it, value?.second, value?.third) }
+            addSource(cardIndexSelected) { value = Triple(value?.first, it, value?.third) }
+            addSource(userPreferences) { value = Triple(value?.first, value?.second, it) }
+        }
 
     val todayBigCardData
-        get(): LiveData<Pair<DayWeatherModel?, Int?>> = _todayBigCardData
+        get(): LiveData<Triple<DayWeatherModel?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private var weatherRepository: WeatherRepository = MainWeatherRepository(database)
+    private var weatherRepositoryInterface: WeatherRepositoryInterface = MainWeatherRepository(database)
 
     init {
-        _cardIndexSelected.value = dateTimeProvider.getDateTime().hour
+        _cardIndexSelected.value = LocalDateTimeImpl.getDateTime().hour
     }
 
     fun updateSelectedCardIndex(index: Int) {
         _cardIndexSelected.value = index
     }
 
-    fun requestLocationDetails(context: Context): Location? {
-        val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
-        return LocationProvider.provideLocation(context, locationData.first, locationData.second)
-    }
-
-    fun provideWeatherData(location: Location) {
-        updateWeatherData(dateTimeProvider.getDateTime().toLocalDate(), location)
-    }
-
-    private fun setDayWeatherNewData(dayWeather: DayWeather) {
+    fun deleteExpiredData() {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val hourlyList = database.hourWeatherDao.getHourForecast(dayWeather.id).toModel()
-                _todayWeatherData.postValue(
-                    DayWeatherModel(
-                        dayWeather.date,
-                        hourlyList
-                    )
-                )
-            }
+            database.dayWeatherDao.deletePastData(
+                LocalDateTimeImpl.getDateTime().toLocalDate()
+            )
         }
     }
 
-    fun updateWeatherData(date: LocalDate, location: Location) {
+    fun provideWeatherData(location: LocationData) {
+        updateWeatherData(LocalDateTimeImpl.getDateTime().toLocalDate(), location)
+    }
 
-        runBlocking(Dispatchers.IO) {
-            if (!checkWeatherIsStored(date, location.city, location.country)) {
-                val networkResponse = weatherRepository.requestWeatherData(location, 1)
+    private suspend fun setDayWeatherNewData(dayWeather: DayWeather) {
+        val hourlyList = database.hourWeatherDao.getHourForecast(dayWeather.id).toModel()
+        _todayWeatherData.postValue(
+            DayWeatherModel(
+                dayWeather.date,
+                hourlyList
+            )
+        )
+    }
+
+    private fun updateWeatherData(date: LocalDate, location: LocationData) {
+
+        viewModelScope.launch {
+            val entryExists = checkWeatherIsStored(date, location.city, location.country)
+            val entryIsStale = checkWeatherDataIsStale(date, location.city, location.country)
+
+            if (!entryExists || (entryExists && entryIsStale)) {
+                val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 1)
                 val newData =
-                    weatherRepository.setOneDayWeatherData(networkResponse.forecast.forecastDay[0])
-                weatherRepository.storeTodayWeather(newData, location)
+                    weatherRepositoryInterface.setOneDayWeatherData(networkResponse.forecast.forecastDay[0])
+                weatherRepositoryInterface.storeTodayWeather(newData, location)
             }
 
             val dayWeather =
                 database.dayWeatherDao.getDayWeather(date, location.city, location.country)
+                    ?: return@launch
             setDayWeatherNewData(dayWeather)
         }
-
     }
 
     private suspend fun checkWeatherIsStored(
@@ -91,61 +98,42 @@ class DetailedWeatherViewModel(val database: WeatherDatabase) : ViewModel() {
         city: String,
         country: String
     ): Boolean {
-
-        return withContext(Dispatchers.IO) {
-            val entryExists = async {
-                database.dayWeatherDao.checkEntryExists(date, city, country)
-            }
-            entryExists.await()
-        }
+        return database.dayWeatherDao.checkEntryExists(date, city, country)
     }
 
-    companion object {
-        fun getTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            return if (SettingsSharedPrefs.getTempPrefs())
-                "${hourWeatherObj.tempC}${if (ending) "°C" else "°"}"
-            else
-                "${hourWeatherObj.tempF}${if (ending) "°F" else "°"}"
+    private suspend fun checkWeatherDataIsStale(
+        date: LocalDate,
+        city: String,
+        country: String
+    ): Boolean {
+        val weatherData = database.dayWeatherDao.getDayWeather(date, city, country) ?: return true
+        val dateTimeOfCreation =
+            LocalDateTime.ofEpochSecond(weatherData.createdAt, 0, ZoneOffset.UTC)
+        if (Duration.between(dateTimeOfCreation, LocalDateTimeImpl.getDateTime())
+                .toHours() > BASE_STALE_PERIOD
+        ) {
+            return true
         }
 
-        fun getFeelsLikeTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            return if (SettingsSharedPrefs.getTempPrefs())
-                "${hourWeatherObj.feelsLikeC}${if (ending) "°C" else "°"}"
-            else
-                "${hourWeatherObj.feelsLikeF}${if (ending) "°F" else "°"}"
-        }
-
-        fun getPressurePref(hourWeatherObj: HourWeatherModel): String {
-            if (SettingsSharedPrefs.getPressurePref())
-                return "${hourWeatherObj.pressureMb} mb"
-            else
-                return "${hourWeatherObj.pressureIn} in"
-        }
-
-        fun getMaxTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            return if (SettingsSharedPrefs.getTempPrefs())
-                "${hourWeatherObj.maxTempC.toInt()}${if (ending) "°C" else "°"}"
-            else
-                "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
-        }
-
-        fun getMinTempPref(hourWeatherObj: HourWeatherModel, ending: Boolean): String {
-            return if (SettingsSharedPrefs.getTempPrefs())
-                "${hourWeatherObj.minTempC.toInt()}${if (ending) "°C" else "°"}"
-            else
-                "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
-        }
+        return false
     }
 }
 
-class DetailedWeatherViewModelFactory(private val database: WeatherDatabase) :
+class DetailedWeatherViewModelFactory(
+    private val database: WeatherDatabase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val locationRepository: LocationRepository
+) :
     ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DetailedWeatherViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return DetailedWeatherViewModel(database) as T
+            return DetailedWeatherViewModel(
+                database,
+                userPreferencesRepository,
+                locationRepository
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
-
 }

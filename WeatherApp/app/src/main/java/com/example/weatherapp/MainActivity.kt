@@ -10,12 +10,10 @@ import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.core.app.ActivityCompat
 import androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
-import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.databinding.ActivityMainBinding
 import com.example.weatherapp.ui.SettingsFragment
 import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
@@ -29,19 +27,24 @@ import android.os.IBinder
 
 import android.location.Location
 import android.telecom.TelecomManager
-import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.weatherapp.core.repositories.LocationRepository
+import com.example.weatherapp.core.repositories.asString
+import com.example.weatherapp.ui.MyApplication
 
 
 class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener,
     TodayOverviewFragment.MainActivityLinker, SettingsFragment.ToolbarSetup {
 
-    private val viewModel: MainActivityViewModel by viewModels()
+    private val viewModel: MainActivityViewModel by viewModels {
+        MainActivityViewModelFactory(
+            LocationRepository((application as MyApplication).dataStoreLocation)
+        )
+    }
     private lateinit var binding: ActivityMainBinding
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
-    private val PERMISSION_ID = 44
     private var mService: LocationUpdatesService? = null
     private var mBound: Boolean = false
     private lateinit var myReceiver: BroadcastReceiver
@@ -130,9 +133,9 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
         }
     }
 
-    override fun setupToolbar() {
+    override fun setupToolbar(title: String) {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.title = LocationSharedPrefs.getLocationName()
+        supportActionBar?.title = title
     }
 
     override fun setupSettingsToolbar() {
@@ -154,9 +157,9 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
         }
     }
 
-    override fun setHomeAsUp() {
+    override fun setHomeAsUp(title: String) {
         supportActionBar?.setDisplayHomeAsUpEnabled(false)
-        supportActionBar?.title = LocationSharedPrefs.getLocationName()
+        supportActionBar?.title = title
     }
 
     override fun onDestroy() {

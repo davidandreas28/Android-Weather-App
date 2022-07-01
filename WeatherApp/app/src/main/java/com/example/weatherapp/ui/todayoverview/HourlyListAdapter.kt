@@ -5,6 +5,8 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.weatherapp.R
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.core.repositories.UserPreferences
+import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
 import com.example.weatherapp.databinding.HourlyCardItemBinding
 import java.util.*
 
@@ -30,6 +32,15 @@ class HourlyListAdapter(
             notifyDataSetChanged()
         }
 
+    var userPreferences: UserPreferences = UserPreferences(
+        celsiusTempPref = true,
+        mbPressurePref = true
+    )
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     class ViewHolder(private var binding: HourlyCardItemBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
@@ -38,7 +49,8 @@ class HourlyListAdapter(
             displayNow: Boolean,
             position: Int,
             selectedIndex: Int?,
-            onItemClicked: (Int) -> Unit
+            onItemClicked: (Int) -> Unit,
+            userPreferences: UserPreferences
         ) {
             val currentHourIn24Format: Int = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             val context = itemView.context
@@ -50,7 +62,7 @@ class HourlyListAdapter(
                     hourlyCardTitle.text = viewHolderItem.time
                 }
 
-                val tempString = DetailedWeatherViewModel.getTempPref(viewHolderItem, false)
+                val tempString = getTempPref(viewHolderItem, userPreferences, false)
                 hourlyCardTemp.text = tempString
                 hourlyCardIcon.setImageResource(viewHolderItem.weatherType.imgSrc)
                 hourlyCard.setOnClickListener {
@@ -92,7 +104,8 @@ class HourlyListAdapter(
             displayNow,
             position,
             selectedIndex,
-            onItemClicked
+            onItemClicked,
+            userPreferences
         )
     }
 

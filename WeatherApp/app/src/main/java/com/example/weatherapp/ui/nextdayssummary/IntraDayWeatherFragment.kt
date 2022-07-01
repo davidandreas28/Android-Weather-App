@@ -11,10 +11,13 @@ import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
+import com.example.weatherapp.core.repositories.LocationRepository
+import com.example.weatherapp.core.repositories.UserPreferences
+import com.example.weatherapp.core.repositories.UserPreferencesRepository
+import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
+import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
+import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
 import com.example.weatherapp.ui.MyApplication
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getFeelsLikeTempPref
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getPressurePref
-import com.example.weatherapp.ui.todayoverview.DetailedWeatherViewModel.Companion.getTempPref
 import java.util.*
 
 class IntraDayWeatherFragment : Fragment() {
@@ -22,8 +25,10 @@ class IntraDayWeatherFragment : Fragment() {
     private lateinit var binding: FragmentIntraDayWeatherBinding
     private lateinit var adapter: HourlyListAdapter
     private val nextDaysViewModel: NextDaysViewModel by viewModels {
-        NextDaysViewModelModelFactory(
-            (activity?.application as MyApplication).database
+        NextDaysViewModelFactory(
+            (activity?.application as MyApplication).database,
+            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
+            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
         )
     }
     private var currentDayData: List<DayWeatherModel> = listOf()
@@ -40,8 +45,6 @@ class IntraDayWeatherFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val location = context?.let { nextDaysViewModel.requestLocationDetails(it) }
-        location?.let { nextDaysViewModel.provideWeatherData(location) }
         val index = requireArguments().getInt("itemIndex")
         observe(index)
         setupRecycleView()
@@ -53,7 +56,7 @@ class IntraDayWeatherFragment : Fragment() {
         }
 
         nextDaysViewModel.todayBigCardData.observe(viewLifecycleOwner) {
-            if (it?.first == null || it.second == null) {
+            if (it?.first == null || it.second == null || it.third == null) {
                 return@observe
             }
 
@@ -61,9 +64,15 @@ class IntraDayWeatherFragment : Fragment() {
             adapter.hourlyTempList = currentDayData[index].hourlyWeatherList
             setupDetailedCard(
                 currentDayData[index],
-                it.second!!
+                it.second!!,
+                it.third!!
             )
+            adapter.userPreferences = it.third!!
             binding.recyclerView.scrollToPosition(it.second!!)
+        }
+
+        nextDaysViewModel.locationData.observe(viewLifecycleOwner) {
+            nextDaysViewModel.provideWeatherData(it)
         }
     }
 
@@ -80,7 +89,11 @@ class IntraDayWeatherFragment : Fragment() {
         binding.recyclerView.setHasFixedSize(true)
     }
 
-    private fun setupDetailedCard(dayWeatherObj: DayWeatherModel, dayPos: Int) {
+    private fun setupDetailedCard(
+        dayWeatherObj: DayWeatherModel,
+        dayPos: Int,
+        userPreferences: UserPreferences
+    ) {
         val hourWeatherObj = dayWeatherObj.hourlyWeatherList[dayPos]
 
         binding.todayElement.text = dayWeatherObj.getFormattedDate()
@@ -93,7 +106,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.mainTemperatureValue.text = getString(
             R.string.current_temp,
-            getTempPref(hourWeatherObj, true)
+            getTempPref(hourWeatherObj, userPreferences, true)
         )
         binding.windValue.text = getString(
             R.string.current_wind_speed,
@@ -102,7 +115,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.feelsLikeValue.text = getString(
             R.string.feels_like_temp,
-            getFeelsLikeTempPref(hourWeatherObj, true)
+            getFeelsLikeTempPref(hourWeatherObj, userPreferences, true)
         )
         binding.humidityValue.text = getString(
             R.string.humidity_value,
@@ -110,7 +123,7 @@ class IntraDayWeatherFragment : Fragment() {
         )
         binding.pressureValue.text = getString(
             R.string.detailed_card_pressure,
-            getPressurePref(hourWeatherObj)
+            getPressurePref(hourWeatherObj, userPreferences)
         )
     }
 }

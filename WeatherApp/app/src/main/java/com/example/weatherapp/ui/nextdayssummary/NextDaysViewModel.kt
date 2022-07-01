@@ -1,22 +1,21 @@
 package com.example.weatherapp.ui.nextdayssummary
 
-import android.content.Context
 import androidx.lifecycle.*
-import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.models.DayWeatherModel
-import com.example.weatherapp.core.models.Location
-import com.example.weatherapp.core.repositories.MainWeatherRepository
-import com.example.weatherapp.core.repositories.WeatherRepository
-import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
-import com.example.weatherapp.core.utils.LocationProvider
 import kotlinx.coroutines.*
-import java.time.LocalDate
 
-class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
+class NextDaysViewModel(
+    private val database: WeatherDatabase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val locationRepository: LocationRepository
+) : ViewModel() {
+
+    val DEFAULT_NEXT_DAYS_NUMBER = 2
 
     private val _nextDaysData = MutableLiveData<List<DayWeatherModel>>()
     val nextDaysData get(): LiveData<List<DayWeatherModel>> = _nextDaysData
@@ -24,16 +23,20 @@ class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
     private val _selectedCardIndex = MutableLiveData<Int>()
     val selectedCardIndex get(): LiveData<Int> = _selectedCardIndex
 
-    private val _todayBigCardData = MediatorLiveData<Pair<List<DayWeatherModel>?, Int?>>().apply {
-        addSource(nextDaysData) { value = it to value?.second }
-        addSource(selectedCardIndex) { value = value?.first to it }
-    }
+    val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
+    val locationData = locationRepository.locationData.asLiveData()
+
+    private val _todayBigCardData =
+        MediatorLiveData<Triple<List<DayWeatherModel>?, Int?, UserPreferences?>>().apply {
+            addSource(nextDaysData) { value = Triple(it, value?.second, value?.third) }
+            addSource(selectedCardIndex) { value = Triple(value?.first, it, value?.third) }
+            addSource(userPreferences) { value = Triple(value?.first, value?.second, it) }
+        }
 
     val todayBigCardData
-        get(): LiveData<Pair<List<DayWeatherModel>?, Int?>> = _todayBigCardData
+        get(): LiveData<Triple<List<DayWeatherModel>?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private val dateTimeProvider: DateTime = LocalDateTimeImpl()
-    private var weatherRepository: WeatherRepository = MainWeatherRepository(database)
+    private var weatherRepositoryInterface: WeatherRepositoryInterface = MainWeatherRepository(database)
 
     fun updateSelectedCardIndex(index: Int) {
         _selectedCardIndex.value = index
@@ -43,62 +46,83 @@ class NextDaysViewModel(private val database: WeatherDatabase) : ViewModel() {
         _selectedCardIndex.value = 12
     }
 
-    fun provideWeatherData(location: Location) {
-        updateWeatherData(dateTimeProvider.getDateTime().toLocalDate(), location)
+    fun provideWeatherData(location: LocationData) {
+        updateWeatherData(location)
     }
 
-    fun requestLocationDetails(context: Context): Location? {
-        val locationData: Pair<Double, Double> = LocationSharedPrefs.getLocation()
-        return LocationProvider.provideLocation(context, locationData.first, locationData.second)
-    }
-
-    private fun updateWeatherData(now: LocalDate, location: Location) {
-        runBlocking(Dispatchers.IO) {
-            if (!checkWeatherIsStored(now, location.city, location.country)) {
-                val networkResponse = weatherRepository.requestWeatherData(location, 8)
-                val newData = weatherRepository.setMultipleDayWeatherData(networkResponse)
-                weatherRepository.storeNextDaysWeather(newData, location)
+    private fun updateWeatherData(location: LocationData) {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (retrieveHowMuchDataIsStored(
+                    location.city,
+                    location.country
+                ) != DEFAULT_NEXT_DAYS_NUMBER
+            ) {
+                deleteInvalidData()
+                val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 8)
+                val newData = weatherRepositoryInterface.setMultipleDayWeatherData(networkResponse)
+                weatherRepositoryInterface.storeNextDaysWeather(newData, location)
             }
 
+            val startDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(1)
+            val endDate = startDate.plusDays(7)
             val dayWeatherList =
-                database.dayWeatherDao.getAllDayWeather(location.city, location.country)
+                database.dayWeatherDao.getNextDaysData(
+                    location.city,
+                    location.country,
+                    startDate,
+                    endDate
+                )
             setNextDaysWeatherData(dayWeatherList)
         }
     }
 
-    private fun setNextDaysWeatherData(dayWeatherList: List<DayWeather>) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val dayWeatherModelList = mutableListOf<DayWeatherModel>()
-
-                for (dayWeatherObj in dayWeatherList.subList(1, dayWeatherList.size)) {
-                    val hourlyList =
-                        database.hourWeatherDao.getHourForecast(dayWeatherObj.id).toModel()
-
-                    dayWeatherModelList.add(
-                        DayWeatherModel(
-                            dayWeatherObj.date,
-                            hourlyList
-                        )
-                    )
-                }
-                _nextDaysData.postValue(dayWeatherModelList)
-            }
+    private suspend fun deleteInvalidData() {
+        withContext(Dispatchers.IO) {
+            database.dayWeatherDao.deleteIncompleteData(
+                LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(1)
+            )
         }
     }
 
-    private suspend fun checkWeatherIsStored(
-        date: LocalDate,
+    private suspend fun setNextDaysWeatherData(dayWeatherList: List<DayWeather>) {
+        val dayWeatherModelList = mutableListOf<DayWeatherModel>()
+
+        for (dayWeatherObj in dayWeatherList) {
+            val hourlyList =
+                database.hourWeatherDao.getHourForecast(dayWeatherObj.id).toModel()
+
+            dayWeatherModelList.add(
+                DayWeatherModel(
+                    dayWeatherObj.date,
+                    hourlyList
+                )
+            )
+        }
+        _nextDaysData.postValue(dayWeatherModelList)
+    }
+
+    private suspend fun retrieveHowMuchDataIsStored(
         city: String,
         country: String
-    ): Boolean {
-        return withContext(Dispatchers.IO) {
-            val entryExists = async {
-                val startDate = date.plusDays(1)
-                val endDate = date.plusDays(7)
-                database.dayWeatherDao.checkNextDaysStored(startDate, endDate, city, country)
-            }
-            entryExists.await()
+    ): Int {
+
+        val startDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(1)
+        val endDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(7)
+        return database.dayWeatherDao.retrieveNextDaysNumber(startDate, endDate, city, country)
+    }
+}
+
+class NextDaysViewModelFactory(
+    private val database: WeatherDatabase,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val locationRepository: LocationRepository
+) :
+    ViewModelProvider.Factory {
+    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(NextDaysViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return NextDaysViewModel(database, userPreferencesRepository, locationRepository) as T
         }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

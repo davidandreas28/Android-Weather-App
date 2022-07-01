@@ -1,9 +1,7 @@
 package com.example.weatherapp.ui.todayoverview
 
 import android.content.*
-import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,25 +10,30 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
-import com.example.weatherapp.core.datasources.local.LocationSharedPrefs
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.services.WeatherBroadcastReceiver
 import com.example.weatherapp.core.models.HourWeatherModel
+import com.example.weatherapp.core.repositories.LocationRepository
+import com.example.weatherapp.core.repositories.UserPreferences
+import com.example.weatherapp.core.repositories.UserPreferencesRepository
+import com.example.weatherapp.core.repositories.asString
+import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
+import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
+import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
 import com.example.weatherapp.ui.MyApplication
-import java.time.LocalDate
 import java.util.*
 
-class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
+class TodayOverviewFragment : Fragment() {
 
     interface MainActivityLinker {
         fun onNextDaysButtonClicked()
-        fun setHomeAsUp()
+        fun setHomeAsUp(title: String)
     }
 
     private val dummyLinker: MainActivityLinker = object : MainActivityLinker {
         override fun onNextDaysButtonClicked() {}
-        override fun setHomeAsUp() {}
+        override fun setHomeAsUp(title: String) {}
     }
 
     private lateinit var binding: FragmentTodayOverviewBinding
@@ -41,33 +44,28 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
     private val COMMAND = "location_update"
     private val viewModel: DetailedWeatherViewModel by activityViewModels {
         DetailedWeatherViewModelFactory(
-            (activity?.application as MyApplication).database
+            (activity?.application as MyApplication).database,
+            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
+            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
         )
-    }
-
-    override fun onSharedPreferenceChanged(p0: SharedPreferences?, p1: String?) {
-        if (p1 != null && context != null) {
-            val location = viewModel.requestLocationDetails(context!!)
-            location?.let { viewModel.provideWeatherData(location) }
-        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         broadcast = WeatherBroadcastReceiver()
-        LocationSharedPrefs.registerListener(this)
         LocalBroadcastManager.getInstance(context!!).registerReceiver(
             broadcast,
             IntentFilter(COMMAND)
         )
-        val location = viewModel.requestLocationDetails(context!!)
-        location?.let { viewModel.provideWeatherData(location) }
+        viewModel.deleteExpiredData()
+//        val location = viewModel.requestLocationDetails(context!!)
+//        location?.let { viewModel.provideWeatherData(location) }
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
 
         val fragmentBinding = FragmentTodayOverviewBinding.inflate(inflater, container, false)
         binding = fragmentBinding
@@ -77,7 +75,6 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        mainActivityLinker.setHomeAsUp()
         observe()
         setupRecycleView()
 
@@ -121,11 +118,16 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
         }
 
         viewModel.todayBigCardData.observe(viewLifecycleOwner) {
-            if (it?.first == null || it.second == null)
+            if (it?.first == null || it.second == null || it.third == null)
                 return@observe
-            setupDetailedCard(it.first!!.hourlyWeatherList[it.second!!])
+            setupDetailedCard(it.first!!.hourlyWeatherList[it.second!!], it.third!!)
             binding.recyclerView.scrollToPosition(it.second!!)
+            adapter.userPreferences = it.third!!
+        }
 
+        viewModel.locationData.observe(viewLifecycleOwner) {
+            viewModel.provideWeatherData(it)
+            mainActivityLinker.setHomeAsUp(it.asString())
         }
 
         viewModel.todayWeatherData.observe(viewLifecycleOwner) {
@@ -136,7 +138,10 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
         }
     }
 
-    private fun setupDetailedCard(hourWeatherObj: HourWeatherModel) {
+    private fun setupDetailedCard(
+        hourWeatherObj: HourWeatherModel,
+        userPreferences: UserPreferences
+    ) {
 
         with(binding) {
             detailedCardTimeframe.text = getString(
@@ -148,7 +153,7 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
             )
             mainTemperatureValue.text = getString(
                 R.string.current_temp,
-                DetailedWeatherViewModel.getTempPref(hourWeatherObj, true)
+                getTempPref(hourWeatherObj, userPreferences, true)
             )
             windValue.text = getString(
                 R.string.current_wind_speed,
@@ -157,7 +162,7 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
             )
             feelsLikeValue.text = getString(
                 R.string.feels_like_temp,
-                DetailedWeatherViewModel.getFeelsLikeTempPref(hourWeatherObj, true)
+                getFeelsLikeTempPref(hourWeatherObj, userPreferences, true)
             )
             humidityValue.text = getString(
                 R.string.humidity_value,
@@ -165,7 +170,7 @@ class TodayOverviewFragment : Fragment(), OnSharedPreferenceChangeListener {
             )
             pressureValue.text = getString(
                 R.string.detailed_card_pressure,
-                DetailedWeatherViewModel.getPressurePref(hourWeatherObj)
+                getPressurePref(hourWeatherObj, userPreferences)
             )
         }
     }

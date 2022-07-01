@@ -19,7 +19,6 @@ import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
 import android.app.ActivityManager
 import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_MUTABLE
 
 
 class LocationUpdatesService : Service() {

@@ -3,7 +3,7 @@ package com.example.weatherapp.core.utils
 import android.content.Context
 import android.location.Geocoder
 import android.util.Log
-import com.example.weatherapp.core.models.Location
+import com.example.weatherapp.core.repositories.LocationData
 import java.io.IOException
 
 class LocationProvider {
@@ -11,7 +11,7 @@ class LocationProvider {
         private val RESULTS_NO = 1
         private val TAG = javaClass.simpleName
 
-        fun provideLocation(context: Context, latitude: Double, longitude: Double): Location? {
+        fun provideLocation(context: Context, latitude: Double, longitude: Double): LocationData? {
             val geocoder = Geocoder(context)
             try {
                 val locationList = geocoder.getFromLocation(latitude, longitude, RESULTS_NO)
@@ -20,11 +20,11 @@ class LocationProvider {
                 }
 
                 val newLocation = locationList[0]
-                return Location(
-                    newLocation.locality ?: "Unknown",
-                    newLocation.countryName ?: "Unknown",
+                return LocationData(
                     latitude,
-                    longitude
+                    longitude,
+                    newLocation.locality ?: "Unknown",
+                    newLocation.countryName ?: "Unknown"
                 )
             } catch (e: IOException) {
                 Log.e(TAG, "Geocoder service error " + e.message)

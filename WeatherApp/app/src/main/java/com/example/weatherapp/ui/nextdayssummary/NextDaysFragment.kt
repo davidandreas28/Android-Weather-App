@@ -13,6 +13,8 @@ import com.example.weatherapp.MainActivity
 
 import android.content.Context
 import android.content.Intent
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import com.example.weatherapp.R
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.UserPreferencesRepository
@@ -79,6 +81,18 @@ class NextDaysFragment : Fragment() {
     }
 
     private fun observe() {
+        nextDaysViewModel.networkStatus.observe(viewLifecycleOwner) {
+            if (it == 1) {
+                setMainComponentsVisibility(false)
+                setBufferingSpinnerVisibility(true)
+            }
+
+            if (it == 0) {
+                setMainComponentsVisibility(true)
+                setBufferingSpinnerVisibility(false)
+            }
+        }
+
         nextDaysViewModel.nextDaysData.observe(viewLifecycleOwner) {
             adapter.weatherData = it
         }
@@ -95,6 +109,22 @@ class NextDaysFragment : Fragment() {
             onClickListener.setupToolbar(it.asString())
         }
 
+    }
+
+    private fun setBufferingSpinnerVisibility(visible: Boolean) {
+        if (visible) {
+            binding.progressBar.visibility = VISIBLE
+        } else {
+            binding.progressBar.visibility = INVISIBLE
+        }
+    }
+
+    private fun setMainComponentsVisibility(visible: Boolean) {
+        if (visible) {
+            binding.recyclerView.visibility = VISIBLE
+        } else {
+            binding.recyclerView.visibility = INVISIBLE
+        }
     }
 
     private fun setupRecycleView() {

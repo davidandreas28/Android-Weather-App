@@ -1,9 +1,12 @@
 package com.example.weatherapp.ui.todayoverview
 
+import android.util.Log
 import androidx.lifecycle.*
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
+import com.example.weatherapp.core.datasources.remote.NetworkResultWrapper
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
@@ -27,7 +30,12 @@ class DetailedWeatherViewModel(
     private val _cardIndexSelected = MutableLiveData<Int?>()
     val cardIndexSelected get(): LiveData<Int?> = _cardIndexSelected
 
-    val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
+    // SUCCESS = 0, LOADING = 1, ERROR = -1
+    private val _networkStatus = MutableLiveData(1)
+    val networkStatus: LiveData<Int> = _networkStatus
+    var lastKnownLocation: LocationData? = null
+
+    private val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
 
     val locationData = locationRepository.locationData.asLiveData()
 
@@ -41,7 +49,8 @@ class DetailedWeatherViewModel(
     val todayBigCardData
         get(): LiveData<Triple<DayWeatherModel?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private var weatherRepositoryInterface: WeatherRepositoryInterface = MainWeatherRepository(database)
+    private var weatherRepositoryInterface: WeatherRepositoryInterface =
+        MainWeatherRepository(database)
 
     init {
         _cardIndexSelected.value = LocalDateTimeImpl.getDateTime().hour
@@ -60,6 +69,7 @@ class DetailedWeatherViewModel(
     }
 
     fun provideWeatherData(location: LocationData) {
+        lastKnownLocation = location
         updateWeatherData(LocalDateTimeImpl.getDateTime().toLocalDate(), location)
     }
 
@@ -80,16 +90,33 @@ class DetailedWeatherViewModel(
             val entryIsStale = checkWeatherDataIsStale(date, location.city, location.country)
 
             if (!entryExists || (entryExists && entryIsStale)) {
+                _networkStatus.value = 1
                 val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 1)
-                val newData =
-                    weatherRepositoryInterface.setOneDayWeatherData(networkResponse.forecast.forecastDay[0])
-                weatherRepositoryInterface.storeTodayWeather(newData, location)
+                when (networkResponse) {
+                    is NetworkResultWrapper.Success -> {
+                        val newData =
+                            weatherRepositoryInterface.setOneDayWeatherData(networkResponse.value.forecast.forecastDay[0])
+                        weatherRepositoryInterface.storeTodayWeather(newData, location)
+                        _networkStatus.value = 0
+                    }
+                    is NetworkResultWrapper.NetworkError -> {
+                        Log.e("Network error", "Network error: IO Exception")
+                        _networkStatus.value = -1
+                    }
+                    is NetworkResultWrapper.GenericError -> {
+                        Log.e(
+                            "Network error",
+                            "Message: ${networkResponse.error?.error?.message ?: "generic"}"
+                        )
+                    }
+                }
             }
 
             val dayWeather =
                 database.dayWeatherDao.getDayWeather(date, location.city, location.country)
                     ?: return@launch
             setDayWeatherNewData(dayWeather)
+            _networkStatus.postValue(0)
         }
     }
 

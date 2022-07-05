@@ -3,16 +3,16 @@ package com.example.weatherapp.core.repositories
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.HourWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
-import com.example.weatherapp.core.datasources.remote.ServiceConfig
-import com.example.weatherapp.core.datasources.remote.WeatherApi
-import com.example.weatherapp.core.datasources.remote.WeatherApiModel
-import com.example.weatherapp.core.datasources.remote.WeatherForecastDayDetails
+import com.example.weatherapp.core.datasources.remote.*
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.models.WeatherType
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneOffset
 
@@ -62,15 +62,44 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         return nextDaysWeatherList
     }
 
-    override suspend fun requestWeatherData(location: LocationData, days: Int): WeatherApiModel {
+    override suspend fun requestWeatherData(
+        location: LocationData,
+        days: Int
+    ): NetworkResultWrapper<WeatherApiModel> {
 
         return withContext(Dispatchers.IO) {
             val serviceConfig = ServiceConfig()
-            WeatherApi.retrofitService.getWeatherData(
-                serviceConfig.API_KEY,
-                location.lat.toString() + "," + location.lon.toString(),
-                days
-            )
+            try {
+                val result = WeatherApi.retrofitService.getWeatherData(
+                    serviceConfig.API_KEY,
+                    location.lat.toString() + "," + location.lon.toString(),
+                    days
+                )
+                NetworkResultWrapper.Success(result)
+            } catch (throwable: Throwable) {
+                when (throwable) {
+                    is IOException -> NetworkResultWrapper.NetworkError
+                    is HttpException -> {
+                        val code = throwable.code()
+                        val errorResponse = convertErrorBody(throwable)
+                        NetworkResultWrapper.GenericError(code, errorResponse)
+                    }
+                    else -> {
+                        NetworkResultWrapper.GenericError(null, null)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun convertErrorBody(throwable: HttpException): ErrorResponse? {
+        return try {
+            throwable.response()?.errorBody()?.source()?.let {
+                val moshiAdapter = Moshi.Builder().build().adapter(ErrorResponse::class.java)
+                moshiAdapter.fromJson(it)
+            }
+        } catch (exception: Exception) {
+            null
         }
     }
 

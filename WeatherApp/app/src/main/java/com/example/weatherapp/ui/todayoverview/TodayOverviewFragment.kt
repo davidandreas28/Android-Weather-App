@@ -4,10 +4,12 @@ import android.content.*
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.View.*
 import android.view.ViewGroup
 import androidx.fragment.app.*
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.weatherapp.MainActivity
 import com.example.weatherapp.R
 import com.example.weatherapp.core.models.DayWeatherModel
@@ -69,6 +71,7 @@ class TodayOverviewFragment : Fragment() {
 
         val fragmentBinding = FragmentTodayOverviewBinding.inflate(inflater, container, false)
         binding = fragmentBinding
+        binding.swipeRefreshLayout.setOnRefreshListener(refreshListener)
         return fragmentBinding.root
     }
 
@@ -113,6 +116,26 @@ class TodayOverviewFragment : Fragment() {
 
     private fun observe() {
 
+        viewModel.networkStatus.observe(viewLifecycleOwner) {
+            if (it == 1) {
+                setMainComponentsVisibility(INVISIBLE)
+                setBufferingSpinnerVisibility(true)
+                setNetworkErrorElementVisibility(false)
+            }
+
+            if (it == 0) {
+                setMainComponentsVisibility(VISIBLE)
+                setBufferingSpinnerVisibility(false)
+                setNetworkErrorElementVisibility(false)
+            }
+
+            if (it == -1) {
+                setMainComponentsVisibility(INVISIBLE)
+                setBufferingSpinnerVisibility(false)
+                setNetworkErrorElementVisibility(true)
+            }
+        }
+
         viewModel.cardIndexSelected.observe(viewLifecycleOwner) {
             adapter.selectedIndex = it
         }
@@ -136,6 +159,46 @@ class TodayOverviewFragment : Fragment() {
             adapter.hourlyTempList = it.hourlyWeatherList
             setupDateSubtitle(it)
         }
+    }
+
+    private fun setBufferingSpinnerVisibility(visible: Boolean) {
+        if (visible) {
+            binding.progressBar.visibility = VISIBLE
+        } else {
+            binding.progressBar.visibility = INVISIBLE
+        }
+    }
+
+    private fun setNetworkErrorElementVisibility(visible: Boolean) {
+        if (visible) {
+            binding.errorText.visibility = VISIBLE
+        } else {
+            binding.errorText.visibility = INVISIBLE
+        }
+    }
+
+    private fun setMainComponentsVisibility(visibility: Int) {
+        val views = mutableListOf<View>()
+        views.apply {
+            add(binding.todayElement)
+            add(binding.todayDate)
+            add(binding.outlinedButton)
+            add(binding.card)
+            add(binding.recyclerView)
+        }
+
+        views.map {
+            it.visibility = visibility
+        }
+    }
+
+    private val refreshListener = SwipeRefreshLayout.OnRefreshListener {
+        binding.swipeRefreshLayout.isRefreshing = true
+        // call api to reload the screen
+        viewModel.lastKnownLocation?.let {
+            viewModel.provideWeatherData(it)
+        }
+        binding.swipeRefreshLayout.isRefreshing = false
     }
 
     private fun setupDetailedCard(

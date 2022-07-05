@@ -22,4 +22,5 @@
     <string name="celsius_c">Celsius (°C)</string>
     <string name="fahrenheit_f">Fahrenheit (°F)</string>
     <string name="temperature_scale">Temperature scale:</string>
+    <string name="check_your_internet_connection">Retrieving data failed. Please, check your internet connection.</string>
 </resources>

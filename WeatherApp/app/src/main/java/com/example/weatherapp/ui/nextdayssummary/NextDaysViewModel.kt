@@ -1,9 +1,11 @@
 package com.example.weatherapp.ui.nextdayssummary
 
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
+import com.example.weatherapp.core.datasources.remote.NetworkResultWrapper
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
@@ -23,6 +25,10 @@ class NextDaysViewModel(
     private val _selectedCardIndex = MutableLiveData<Int>()
     val selectedCardIndex get(): LiveData<Int> = _selectedCardIndex
 
+    // SUCCESS = 0, LOADING = 1, ERROR = -1
+    private val _networkStatus = MutableLiveData(1)
+    val networkStatus: LiveData<Int> = _networkStatus
+
     val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
     val locationData = locationRepository.locationData.asLiveData()
 
@@ -36,7 +42,8 @@ class NextDaysViewModel(
     val todayBigCardData
         get(): LiveData<Triple<List<DayWeatherModel>?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private var weatherRepositoryInterface: WeatherRepositoryInterface = MainWeatherRepository(database)
+    private var weatherRepositoryInterface: WeatherRepositoryInterface =
+        MainWeatherRepository(database)
 
     fun updateSelectedCardIndex(index: Int) {
         _selectedCardIndex.value = index
@@ -59,8 +66,25 @@ class NextDaysViewModel(
             ) {
                 deleteInvalidData()
                 val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 8)
-                val newData = weatherRepositoryInterface.setMultipleDayWeatherData(networkResponse)
-                weatherRepositoryInterface.storeNextDaysWeather(newData, location)
+                when (networkResponse) {
+                    is NetworkResultWrapper.Success -> {
+                        val newData =
+                            weatherRepositoryInterface.setMultipleDayWeatherData(networkResponse.value)
+                        weatherRepositoryInterface.storeNextDaysWeather(newData, location)
+                        _networkStatus.postValue(0)
+                    }
+                    is NetworkResultWrapper.NetworkError -> {
+                        Log.e("Network error", "Network error: IO Exception")
+                        _networkStatus.postValue(-1)
+                    }
+                    is NetworkResultWrapper.GenericError -> {
+                        Log.e(
+                            "Network error",
+                            "Message: ${networkResponse.error?.error?.message ?: "generic"}"
+                        )
+                        _networkStatus.postValue(-1)
+                    }
+                }
             }
 
             val startDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(1)
@@ -73,6 +97,7 @@ class NextDaysViewModel(
                     endDate
                 )
             setNextDaysWeatherData(dayWeatherList)
+            _networkStatus.postValue(0)
         }
     }
 

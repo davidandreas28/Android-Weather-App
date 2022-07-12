@@ -10,11 +10,12 @@ import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
 import kotlinx.coroutines.*
+import javax.inject.Inject
 
-class NextDaysViewModel(
+class NextDaysViewModel @Inject constructor(
     private val database: WeatherDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val locationRepository: LocationRepository
+    userPreferencesRepository: UserPreferencesRepository,
+    locationRepository: LocationRepository
 ) : ViewModel() {
 
     val DEFAULT_NEXT_DAYS_NUMBER = 2
@@ -134,20 +135,5 @@ class NextDaysViewModel(
         val startDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(1)
         val endDate = LocalDateTimeImpl.getDateTime().toLocalDate().plusDays(7)
         return database.dayWeatherDao.retrieveNextDaysNumber(startDate, endDate, city, country)
-    }
-}
-
-class NextDaysViewModelFactory(
-    private val database: WeatherDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val locationRepository: LocationRepository
-) :
-    ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(NextDaysViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return NextDaysViewModel(database, userPreferencesRepository, locationRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

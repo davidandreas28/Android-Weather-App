@@ -6,20 +6,19 @@ import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.databinding.FragmentNextDaysBinding
-import com.example.weatherapp.MainActivity
+import com.example.weatherapp.ui.todayoverview.MainActivity
 
 import android.content.Context
 import android.content.Intent
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
+import androidx.lifecycle.ViewModelProvider
 import com.example.weatherapp.R
-import com.example.weatherapp.core.repositories.LocationRepository
-import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.core.repositories.asString
-import com.example.weatherapp.ui.MyApplication
+import com.example.weatherapp.MyApplication
+import javax.inject.Inject
 
 
 class NextDaysFragment : Fragment() {
@@ -38,16 +37,15 @@ class NextDaysFragment : Fragment() {
             return
         }
     }
+
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val nextDaysViewModel: NextDaysViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[NextDaysViewModel::class.java]
+    }
     private var onClickListener: OnItemClickedListener = sDummyCallbacks
     private lateinit var adapter: NextDaysAdapter
     private lateinit var binding: FragmentNextDaysBinding
-    private val nextDaysViewModel: NextDaysViewModel by viewModels {
-        NextDaysViewModelFactory(
-            (activity?.application as MyApplication).database,
-            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
-            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
-        )
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,6 +73,8 @@ class NextDaysFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
+
+        (requireActivity().application as MyApplication).appComponent.inject(this)
         if (context is MainActivity) {
             onClickListener = context
         }

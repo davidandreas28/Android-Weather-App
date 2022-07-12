@@ -1,12 +1,13 @@
-package com.example.weatherapp
+package com.example.weatherapp.ui.todayoverview
 
 import android.content.Context
 import androidx.lifecycle.*
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.utils.LocationProvider
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class MainActivityViewModel(val locationRepository: LocationRepository) : ViewModel() {
+class MainActivityViewModel @Inject constructor(val locationRepository: LocationRepository) : ViewModel() {
 
     val location = locationRepository.locationData.asLiveData()
 
@@ -17,18 +18,5 @@ class MainActivityViewModel(val locationRepository: LocationRepository) : ViewMo
                 locationRepository.updateLocation(newLocation)
             }
         }
-    }
-}
-
-class MainActivityViewModelFactory(
-    private val locationRepository: LocationRepository
-) :
-    ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(MainActivityViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return MainActivityViewModel(locationRepository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

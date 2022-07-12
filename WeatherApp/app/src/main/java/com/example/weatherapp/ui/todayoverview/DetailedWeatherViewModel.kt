@@ -15,14 +15,15 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import javax.inject.Inject
 
-class DetailedWeatherViewModel(
+class DetailedWeatherViewModel @Inject constructor(
     val database: WeatherDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val locationRepository: LocationRepository
+    userPreferencesRepository: UserPreferencesRepository,
+    locationRepository: LocationRepository
 ) : ViewModel() {
 
-    private val BASE_STALE_PERIOD = 5 // in hours
+    private val BASE_STALE_PERIOD = 5 // hours
 
     private val _todayWeatherData = MutableLiveData<DayWeatherModel>()
     val todayWeatherData get(): LiveData<DayWeatherModel?> = _todayWeatherData
@@ -143,24 +144,5 @@ class DetailedWeatherViewModel(
         }
 
         return false
-    }
-}
-
-class DetailedWeatherViewModelFactory(
-    private val database: WeatherDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val locationRepository: LocationRepository
-) :
-    ViewModelProvider.Factory {
-    override fun <T : ViewModel?> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(DetailedWeatherViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return DetailedWeatherViewModel(
-                database,
-                userPreferencesRepository,
-                locationRepository
-            ) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

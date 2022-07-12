@@ -1,4 +1,4 @@
-package com.example.weatherapp
+package com.example.weatherapp.ui.todayoverview
 
 import android.Manifest
 import android.content.*
@@ -15,11 +15,9 @@ import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import androidx.fragment.app.replace
 import com.example.weatherapp.databinding.ActivityMainBinding
-import com.example.weatherapp.ui.SettingsFragment
+import com.example.weatherapp.ui.settings.SettingsFragment
 import com.example.weatherapp.ui.nextdayssummary.NextDaysFragment
-import com.example.weatherapp.ui.todayoverview.TodayOverviewFragment
 import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
 
 import com.example.weatherapp.core.services.LocationUpdatesService
 
@@ -29,25 +27,31 @@ import android.location.Location
 import android.telecom.TelecomManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.example.weatherapp.MyApplication
+import com.example.weatherapp.R
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.asString
-import com.example.weatherapp.ui.MyApplication
+import javax.inject.Inject
+import javax.inject.Named
 
 
 class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener,
     TodayOverviewFragment.MainActivityLinker, SettingsFragment.ToolbarSetup {
 
-    private val viewModel: MainActivityViewModel by viewModels {
-        MainActivityViewModelFactory(
-            LocationRepository((application as MyApplication).dataStoreLocation)
-        )
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val viewModel: MainActivityViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[MainActivityViewModel::class.java]
     }
+
+    @Inject
+    lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private lateinit var binding: ActivityMainBinding
-    private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var mService: LocationUpdatesService? = null
     private var mBound: Boolean = false
-    private lateinit var myReceiver: BroadcastReceiver
+    lateinit var myReceiver: BroadcastReceiver
 
     private val requestPermissionLauncher =
         registerForActivityResult(
@@ -77,13 +81,13 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        (application as MyApplication).appComponent.inject(this)
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         myReceiver = MyReceiver()
         val view = binding.root
         setContentView(view)
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         LocationUpdatesService.startService(applicationContext)
         setSupportActionBar(binding.toolbar)
         setupBottomNavigation()

@@ -15,7 +15,7 @@ import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import android.content.res.Configuration
 
 import androidx.core.app.NotificationCompat
-import com.example.weatherapp.MainActivity
+import com.example.weatherapp.ui.todayoverview.MainActivity
 import com.example.weatherapp.R
 import android.app.ActivityManager
 import android.app.PendingIntent.FLAG_IMMUTABLE

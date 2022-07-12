@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
-        android:name=".ui.MyApplication"
+        android:name=".MyApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -23,9 +23,9 @@
         <activity
             android:name=".ui.nextdayssummary.IntraDayWeatherActivity"
             android:exported="false"
-            android:parentActivityName=".MainActivity" />
+            android:parentActivityName=".ui.todayoverview.MainActivity" />
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.todayoverview.MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>

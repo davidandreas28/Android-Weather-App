@@ -6,28 +6,27 @@ import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.IBinder
-import androidx.activity.viewModels
 import androidx.appcompat.widget.Toolbar
 import androidx.core.os.bundleOf
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
-import com.example.weatherapp.MainActivityViewModel
-import com.example.weatherapp.MainActivityViewModelFactory
+import androidx.lifecycle.ViewModelProvider
+import com.example.weatherapp.ui.todayoverview.MainActivityViewModel
 import com.example.weatherapp.R
-import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.asString
 import com.example.weatherapp.core.services.LocationUpdatesService
-import com.example.weatherapp.ui.MyApplication
+import com.example.weatherapp.MyApplication
+import javax.inject.Inject
 
 
 class IntraDayWeatherActivity : AppCompatActivity() {
 
     private var mService: LocationUpdatesService? = null
     private var mBound: Boolean = false
-    private val viewModel: MainActivityViewModel by viewModels {
-        MainActivityViewModelFactory(
-            LocationRepository((application as MyApplication).dataStoreLocation)
-        )
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val viewModel: MainActivityViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[MainActivityViewModel::class.java]
     }
 
     // Monitors the state of the connection to the service.
@@ -46,6 +45,7 @@ class IntraDayWeatherActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        (application as MyApplication).appComponent.inject(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_intra_day_weather)
         val index: Int = intent.getIntExtra("itemIndex", 0)

@@ -1,11 +1,13 @@
 package com.example.weatherapp.ui.nextdayssummary
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
@@ -17,19 +19,20 @@ import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
 import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
 import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
-import com.example.weatherapp.ui.MyApplication
+import com.example.weatherapp.MyApplication
+import com.example.weatherapp.ui.todayoverview.MainActivityViewModel
 import java.util.*
+import javax.inject.Inject
 
 class IntraDayWeatherFragment : Fragment() {
 
     private lateinit var binding: FragmentIntraDayWeatherBinding
     private lateinit var adapter: HourlyListAdapter
-    private val nextDaysViewModel: NextDaysViewModel by viewModels {
-        NextDaysViewModelFactory(
-            (activity?.application as MyApplication).database,
-            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
-            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
-        )
+
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val nextDaysViewModel: NextDaysViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[NextDaysViewModel::class.java]
     }
     private var currentDayData: List<DayWeatherModel> = listOf()
 
@@ -48,6 +51,11 @@ class IntraDayWeatherFragment : Fragment() {
         val index = requireArguments().getInt("itemIndex")
         observe(index)
         setupRecycleView()
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        (requireActivity().application as MyApplication).appComponent.inject(this)
     }
 
     private fun observe(index: Int) {

@@ -1,4 +1,4 @@
-package com.example.weatherapp.ui
+package com.example.weatherapp.ui.settings
 
 import android.content.Context
 import android.os.Bundle
@@ -7,17 +7,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
-import com.example.weatherapp.MainActivity
+import androidx.lifecycle.ViewModelProvider
+import com.example.weatherapp.ui.todayoverview.MainActivity
 import com.example.weatherapp.R
+import com.example.weatherapp.MyApplication
 import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.databinding.FragmentSettingsBinding
+import com.example.weatherapp.ui.nextdayssummary.NextDaysViewModel
+import javax.inject.Inject
 
 class SettingsFragment : Fragment() {
     private lateinit var binding: FragmentSettingsBinding
-    private val viewModel: SettingsViewModel by activityViewModels {
-        SettingsViewModelFactory(
-            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref)
-        )
+
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val viewModel: SettingsViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[SettingsViewModel::class.java]
     }
 
     interface ToolbarSetup {
@@ -60,6 +65,8 @@ class SettingsFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
+
+        (requireActivity().application as MyApplication).appComponent.inject(this)
         if (context is MainActivity) {
             mainActivityLinker = context
         }

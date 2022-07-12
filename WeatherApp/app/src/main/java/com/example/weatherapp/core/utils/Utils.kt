@@ -56,7 +56,7 @@ class Utils {
             return if (userPreferences.celsiusTempPref)
                 "${hourWeatherObj.minTempC.toInt()}${if (ending) "°C" else "°"}"
             else
-                "${hourWeatherObj.maxTempF.toInt()}${if (ending) "°F" else "°"}"
+                "${hourWeatherObj.minTempF.toInt()}${if (ending) "°F" else "°"}"
         }
     }
 }

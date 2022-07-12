@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import javax.inject.Inject
 
 data class LocationData(val lon: Double, val lat: Double, val city: String, val country: String)
 
@@ -25,7 +26,7 @@ private const val DEFAULT_LONGITUDE: Double = -118.243683
 private const val DEFAULT_CITY = "Los Angeles"
 private const val DEFAULT_COUNTRY = "United States"
 
-class LocationRepository(private val dataStore: DataStore<Preferences>) {
+class LocationRepository @Inject constructor(private val dataStore: DataStore<Preferences>) {
     val locationData: Flow<LocationData> = dataStore.data
         .catch { exception ->
             // dataStore.data throws an IOException when an error is encountered when reading data

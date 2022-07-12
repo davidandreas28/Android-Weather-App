@@ -7,24 +7,23 @@ import android.view.View
 import android.view.View.*
 import android.view.ViewGroup
 import androidx.fragment.app.*
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.example.weatherapp.MainActivity
-import com.example.weatherapp.R
 import com.example.weatherapp.core.models.DayWeatherModel
-import com.example.weatherapp.core.services.WeatherBroadcastReceiver
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.UserPreferences
 import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.core.repositories.asString
+import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
+import com.example.weatherapp.MyApplication
+import com.example.weatherapp.R
 import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
 import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
 import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
-import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
-import com.example.weatherapp.ui.MyApplication
 import java.util.*
+import javax.inject.Inject
 
 class TodayOverviewFragment : Fragment() {
 
@@ -40,28 +39,18 @@ class TodayOverviewFragment : Fragment() {
 
     private lateinit var binding: FragmentTodayOverviewBinding
     private lateinit var adapter: HourlyListAdapter
-    private lateinit var broadcast: BroadcastReceiver
 
     private var mainActivityLinker: MainActivityLinker = dummyLinker
-    private val COMMAND = "location_update"
-    private val viewModel: DetailedWeatherViewModel by activityViewModels {
-        DetailedWeatherViewModelFactory(
-            (activity?.application as MyApplication).database,
-            UserPreferencesRepository((activity?.application as MyApplication).dataStorePref),
-            LocationRepository((activity?.application as MyApplication).dataStoreLocation)
-        )
+
+    @Inject
+    lateinit var viewModelFactory: ViewModelProvider.Factory
+    private val viewModel: DetailedWeatherViewModel by lazy {
+        ViewModelProvider(viewModelStore, viewModelFactory)[DetailedWeatherViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        broadcast = WeatherBroadcastReceiver()
-        LocalBroadcastManager.getInstance(context!!).registerReceiver(
-            broadcast,
-            IntentFilter(COMMAND)
-        )
         viewModel.deleteExpiredData()
-//        val location = viewModel.requestLocationDetails(context!!)
-//        location?.let { viewModel.provideWeatherData(location) }
     }
 
     override fun onCreateView(
@@ -88,14 +77,11 @@ class TodayOverviewFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
+
+        (requireActivity().application as MyApplication).appComponent.inject(this)
         if (context is MainActivity) {
             mainActivityLinker = context
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        LocalBroadcastManager.getInstance(context!!).unregisterReceiver(broadcast)
     }
 
     private fun setupRecycleView() {

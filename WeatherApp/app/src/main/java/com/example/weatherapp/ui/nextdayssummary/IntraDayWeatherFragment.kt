@@ -6,21 +6,17 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.weatherapp.R
 import com.example.weatherapp.ui.todayoverview.HourlyListAdapter
 import com.example.weatherapp.databinding.FragmentIntraDayWeatherBinding
 import com.example.weatherapp.core.models.DayWeatherModel
-import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.UserPreferences
-import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
 import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
 import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
 import com.example.weatherapp.MyApplication
-import com.example.weatherapp.ui.todayoverview.MainActivityViewModel
 import java.util.*
 import javax.inject.Inject
 

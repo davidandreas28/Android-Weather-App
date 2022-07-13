@@ -1,20 +1,19 @@
 package com.example.weatherapp.ui.todayoverview
 
-import android.content.*
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.view.View.*
+import android.view.View.INVISIBLE
+import android.view.View.VISIBLE
 import android.view.ViewGroup
-import androidx.fragment.app.*
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
-import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.UserPreferences
-import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.core.repositories.asString
 import com.example.weatherapp.databinding.FragmentTodayOverviewBinding
 import com.example.weatherapp.MyApplication
@@ -22,7 +21,6 @@ import com.example.weatherapp.R
 import com.example.weatherapp.core.utils.Utils.Companion.getFeelsLikeTempPref
 import com.example.weatherapp.core.utils.Utils.Companion.getPressurePref
 import com.example.weatherapp.core.utils.Utils.Companion.getTempPref
-import java.util.*
 import javax.inject.Inject
 
 class TodayOverviewFragment : Fragment() {

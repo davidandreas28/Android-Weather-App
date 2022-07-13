@@ -1,7 +1,9 @@
 package com.example.weatherapp.ui.todayoverview
 
 import android.content.Context
-import androidx.lifecycle.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.utils.LocationProvider
 import kotlinx.coroutines.launch

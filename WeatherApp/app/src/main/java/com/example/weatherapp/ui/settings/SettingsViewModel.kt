@@ -1,7 +1,6 @@
 package com.example.weatherapp.ui.settings
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.core.repositories.UserPreferencesRepository

@@ -23,6 +23,7 @@ class IntraDayWeatherActivity : AppCompatActivity() {
 
     private var mService: LocationUpdatesService? = null
     private var mBound: Boolean = false
+
     @Inject
     lateinit var viewModelFactory: ViewModelProvider.Factory
     private val viewModel: MainActivityViewModel by lazy {

@@ -2,7 +2,6 @@ package com.example.weatherapp.ui.todayoverview
 
 import android.util.Log
 import androidx.lifecycle.*
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
@@ -10,7 +9,7 @@ import com.example.weatherapp.core.datasources.remote.NetworkResultWrapper
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
-import kotlinx.coroutines.*
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime

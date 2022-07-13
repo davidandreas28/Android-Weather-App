@@ -6,14 +6,11 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.ViewModelProvider
 import com.example.weatherapp.ui.todayoverview.MainActivity
 import com.example.weatherapp.R
 import com.example.weatherapp.MyApplication
-import com.example.weatherapp.core.repositories.UserPreferencesRepository
 import com.example.weatherapp.databinding.FragmentSettingsBinding
-import com.example.weatherapp.ui.nextdayssummary.NextDaysViewModel
 import javax.inject.Inject
 
 class SettingsFragment : Fragment() {

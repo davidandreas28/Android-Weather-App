@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS
 import android.view.MenuItem
 import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE
 import androidx.fragment.app.add
 import androidx.fragment.app.commit
@@ -31,10 +30,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.weatherapp.MyApplication
 import com.example.weatherapp.R
-import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.repositories.asString
 import javax.inject.Inject
-import javax.inject.Named
 
 
 class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener,

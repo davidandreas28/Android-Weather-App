@@ -8,6 +8,7 @@ import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.models.HourWeatherModel
 import com.example.weatherapp.core.models.WeatherType
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import com.example.weatherapp.utils.DispatcherProvider
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,11 @@ import java.io.IOException
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepositoryInterface {
+class MainWeatherRepository(
+    private val database: WeatherDatabase,
+    private val dispatcherProvider: DispatcherProvider,
+    private val weatherApi: WeatherApi
+) : WeatherRepositoryInterface {
 
     override fun setOneDayWeatherData(weatherData: WeatherForecastDayDetails): DayWeatherModel {
         val weatherDataHourList: MutableList<HourWeatherModel> = mutableListOf()
@@ -67,10 +72,10 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         days: Int
     ): NetworkResultWrapper<WeatherApiModel> {
 
-        return withContext(Dispatchers.IO) {
+        return withContext(dispatcherProvider.IO()) {
             val serviceConfig = ServiceConfig()
             try {
-                val result = WeatherApi.retrofitService.getWeatherData(
+                val result = weatherApi.getService().getWeatherData(
                     serviceConfig.API_KEY,
                     location.lat.toString() + "," + location.lon.toString(),
                     days
@@ -107,7 +112,7 @@ class MainWeatherRepository(private val database: WeatherDatabase) : WeatherRepo
         dayWeatherModel: DayWeatherModel,
         location: LocationData
     ) {
-        withContext(Dispatchers.IO) {
+        withContext(dispatcherProvider.IO()) {
             val dayWeatherObj = DayWeather(
                 date = dayWeatherModel.date,
                 city = location.city,

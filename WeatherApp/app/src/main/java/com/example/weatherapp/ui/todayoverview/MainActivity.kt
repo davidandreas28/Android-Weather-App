@@ -237,7 +237,7 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
                 fusedLocationProviderClient.lastLocation.addOnCompleteListener {
                     val location = it.result
                     if (location != null) {
-                        viewModel.setLocation(this, location.latitude, location.longitude)
+                        viewModel.setLocation(location.latitude, location.longitude)
                     }
                 }
             }
@@ -260,7 +260,7 @@ class MainActivity : AppCompatActivity(), NextDaysFragment.OnItemClickedListener
         override fun onReceive(context: Context, intent: Intent) {
             val location: Location =
                 intent.extras?.get(TelecomManager.EXTRA_LOCATION) as Location
-            viewModel.setLocation(context, location.latitude, location.longitude)
+            viewModel.setLocation(location.latitude, location.longitude)
         }
     }
 }

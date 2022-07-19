@@ -5,31 +5,34 @@ import android.location.Geocoder
 import android.util.Log
 import com.example.weatherapp.core.repositories.LocationData
 import java.io.IOException
+import javax.inject.Inject
 
-class LocationProvider {
-    companion object {
-        private val RESULTS_NO = 1
-        private val TAG = javaClass.simpleName
+interface LocationProvider {
+    fun provideLocation(lat: Double, long: Double): LocationData?
+}
 
-        fun provideLocation(context: Context, latitude: Double, longitude: Double): LocationData? {
-            val geocoder = Geocoder(context)
-            try {
-                val locationList = geocoder.getFromLocation(latitude, longitude, RESULTS_NO)
-                if (locationList.isEmpty()) {
-                    return null
-                }
+class LocationProviderImpl @Inject constructor(private val context: Context) : LocationProvider {
+    private val RESULTS_NO = 1
+    private val TAG = javaClass.simpleName
 
-                val newLocation = locationList[0]
-                return LocationData(
-                    latitude,
-                    longitude,
-                    newLocation.locality ?: "Unknown",
-                    newLocation.countryName ?: "Unknown"
-                )
-            } catch (e: IOException) {
-                Log.e(TAG, "Geocoder service error " + e.message)
+    override fun provideLocation(lat: Double, long: Double): LocationData? {
+        val geocoder = Geocoder(context)
+        try {
+            val locationList = geocoder.getFromLocation(lat, long, RESULTS_NO)
+            if (locationList.isEmpty()) {
                 return null
             }
+
+            val newLocation = locationList[0]
+            return LocationData(
+                lat,
+                long,
+                newLocation.locality ?: "Unknown",
+                newLocation.countryName ?: "Unknown"
+            )
+        } catch (e: IOException) {
+            Log.e(TAG, "Geocoder service error " + e.message)
+            return null
         }
     }
 }

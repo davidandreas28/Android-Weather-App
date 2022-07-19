@@ -6,9 +6,11 @@ import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.datasources.remote.NetworkResultWrapper
+import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
-import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import com.example.weatherapp.core.utils.DateTime
+import com.example.weatherapp.utils.DispatcherProvider
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
@@ -17,9 +19,12 @@ import java.time.ZoneOffset
 import javax.inject.Inject
 
 class DetailedWeatherViewModel @Inject constructor(
-    val database: WeatherDatabase,
+    private val database: WeatherDatabase,
+    private val localDateTimeImpl: DateTime,
     userPreferencesRepository: UserPreferencesRepository,
-    locationRepository: LocationRepository
+    locationRepository: LocationRepository,
+    private val dispatcherProvider: DispatcherProvider,
+    weatherApi: WeatherApi
 ) : ViewModel() {
 
     private val BASE_STALE_PERIOD = 5 // hours
@@ -30,7 +35,6 @@ class DetailedWeatherViewModel @Inject constructor(
     private val _cardIndexSelected = MutableLiveData<Int?>()
     val cardIndexSelected get(): LiveData<Int?> = _cardIndexSelected
 
-    // SUCCESS = 0, LOADING = 1, ERROR = -1
     private val _networkStatus = MutableLiveData(1)
     val networkStatus: LiveData<Int> = _networkStatus
     var lastKnownLocation: LocationData? = null
@@ -49,11 +53,11 @@ class DetailedWeatherViewModel @Inject constructor(
     val todayBigCardData
         get(): LiveData<Triple<DayWeatherModel?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private var weatherRepositoryInterface: WeatherRepositoryInterface =
-        MainWeatherRepository(database)
+    private var weatherRepository: WeatherRepositoryInterface =
+        MainWeatherRepository(database, dispatcherProvider, weatherApi)
 
     init {
-        _cardIndexSelected.value = LocalDateTimeImpl.getDateTime().hour
+        _cardIndexSelected.postValue(localDateTimeImpl.getDateTime().hour)
     }
 
     fun updateSelectedCardIndex(index: Int) {
@@ -61,19 +65,19 @@ class DetailedWeatherViewModel @Inject constructor(
     }
 
     fun deleteExpiredData() {
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcherProvider.Main()) {
             database.dayWeatherDao.deletePastData(
-                LocalDateTimeImpl.getDateTime().toLocalDate()
+                localDateTimeImpl.getDateTime().toLocalDate()
             )
         }
     }
 
     fun provideWeatherData(location: LocationData) {
         lastKnownLocation = location
-        updateWeatherData(LocalDateTimeImpl.getDateTime().toLocalDate(), location)
+        updateWeatherData(localDateTimeImpl.getDateTime().toLocalDate(), location)
     }
 
-    private suspend fun setDayWeatherNewData(dayWeather: DayWeather) {
+    suspend fun setDayWeatherNewData(dayWeather: DayWeather) {
         val hourlyList = database.hourWeatherDao.getHourForecast(dayWeather.id).toModel()
         _todayWeatherData.postValue(
             DayWeatherModel(
@@ -85,18 +89,18 @@ class DetailedWeatherViewModel @Inject constructor(
 
     private fun updateWeatherData(date: LocalDate, location: LocationData) {
 
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcherProvider.Main()) {
             val entryExists = checkWeatherIsStored(date, location.city, location.country)
             val entryIsStale = checkWeatherDataIsStale(date, location.city, location.country)
 
             if (!entryExists || (entryExists && entryIsStale)) {
                 _networkStatus.value = 1
-                val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 1)
+                val networkResponse = weatherRepository.requestWeatherData(location, 1)
                 when (networkResponse) {
                     is NetworkResultWrapper.Success -> {
                         val newData =
-                            weatherRepositoryInterface.setOneDayWeatherData(networkResponse.value.forecast.forecastDay[0])
-                        weatherRepositoryInterface.storeTodayWeather(newData, location)
+                            weatherRepository.setOneDayWeatherData(networkResponse.value.forecast.forecastDay[0])
+                        weatherRepository.storeTodayWeather(newData, location)
                         _networkStatus.value = 0
                     }
                     is NetworkResultWrapper.NetworkError -> {
@@ -136,7 +140,7 @@ class DetailedWeatherViewModel @Inject constructor(
         val weatherData = database.dayWeatherDao.getDayWeather(date, city, country) ?: return true
         val dateTimeOfCreation =
             LocalDateTime.ofEpochSecond(weatherData.createdAt, 0, ZoneOffset.UTC)
-        if (Duration.between(dateTimeOfCreation, LocalDateTimeImpl.getDateTime())
+        if (Duration.between(dateTimeOfCreation, localDateTimeImpl.getDateTime())
                 .toHours() > BASE_STALE_PERIOD
         ) {
             return true

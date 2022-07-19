@@ -63,14 +63,28 @@ dependencies {
 // Paging 3.0
     implementation 'androidx.paging:paging-compose:1.0.0-alpha15'
 
+    // Required -- JUnit 4 framework
+    testImplementation 'junit:junit:4.13.2'
+    // Optional -- Robolectric environment
+    testImplementation "androidx.test:core:1.4.0"
+    // Optional -- Mockito framework
+    testImplementation "org.mockito:mockito-core:4.6.1"
+    // Optional -- mockito-kotlin
+    testImplementation "org.mockito.kotlin:mockito-kotlin:4.0.0"
+    // Optional -- Mockk framework
+    testImplementation "io.mockk:mockk:1.4.1"
 
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    testImplementation "androidx.arch.core:core-testing:2.1.0"
     implementation("androidx.fragment:fragment-ktx:$fragment_version")
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.4.1'
     implementation 'com.squareup.moshi:moshi-kotlin:1.13.0'
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.6.1")
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    testImplementation 'org.mockito:mockito-inline:2.13.0'
     implementation 'com.squareup.retrofit2:converter-moshi:2.9.0'
     implementation 'com.google.android.material:material:1.6.0'
     implementation 'com.google.android.gms:play-services-location:19.0.1'

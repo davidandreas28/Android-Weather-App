@@ -1,22 +1,26 @@
 package com.example.weatherapp.ui.todayoverview
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.example.weatherapp.core.repositories.LocationRepository
 import com.example.weatherapp.core.utils.LocationProvider
+import com.example.weatherapp.utils.DispatcherProvider
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-class MainActivityViewModel @Inject constructor(val locationRepository: LocationRepository) : ViewModel() {
+class MainActivityViewModel @Inject constructor(
+    private val locationProvider: LocationProvider,
+    private val locationRepository: LocationRepository,
+    private val dispatcherProvider: DispatcherProvider
+) : ViewModel() {
 
     val location = locationRepository.locationData.asLiveData()
 
-    fun setLocation(context: Context, latitude: Double, longitude: Double) {
-        val newLocation = LocationProvider.provideLocation(context, latitude, longitude)
+    fun setLocation(latitude: Double, longitude: Double) {
+        val newLocation = locationProvider.provideLocation(latitude, longitude)
         newLocation?.let {
-            viewModelScope.launch {
+            viewModelScope.launch(dispatcherProvider.Main()) {
                 locationRepository.updateLocation(newLocation)
             }
         }

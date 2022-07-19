@@ -6,16 +6,21 @@ import com.example.weatherapp.core.datasources.local.databases.DayWeather
 import com.example.weatherapp.core.datasources.local.databases.WeatherDatabase
 import com.example.weatherapp.core.datasources.local.databases.toModel
 import com.example.weatherapp.core.datasources.remote.NetworkResultWrapper
+import com.example.weatherapp.core.datasources.remote.WeatherApi
 import com.example.weatherapp.core.models.DayWeatherModel
 import com.example.weatherapp.core.repositories.*
+import com.example.weatherapp.core.utils.DataState
 import com.example.weatherapp.core.utils.LocalDateTimeImpl
+import com.example.weatherapp.utils.DispatcherProvider
 import kotlinx.coroutines.*
 import javax.inject.Inject
 
 class NextDaysViewModel @Inject constructor(
     private val database: WeatherDatabase,
     userPreferencesRepository: UserPreferencesRepository,
-    locationRepository: LocationRepository
+    locationRepository: LocationRepository,
+    dispatcherProvider: DispatcherProvider,
+    weatherApi: WeatherApi
 ) : ViewModel() {
 
     val DEFAULT_NEXT_DAYS_NUMBER = 2
@@ -26,9 +31,8 @@ class NextDaysViewModel @Inject constructor(
     private val _selectedCardIndex = MutableLiveData<Int>()
     val selectedCardIndex get(): LiveData<Int> = _selectedCardIndex
 
-    // SUCCESS = 0, LOADING = 1, ERROR = -1
-    private val _networkStatus = MutableLiveData(1)
-    val networkStatus: LiveData<Int> = _networkStatus
+    private val _networkStatus = MutableLiveData(DataState.LOADING)
+    val networkStatus: LiveData<DataState> = _networkStatus
 
     val userPreferences = userPreferencesRepository.userPreferencesFlow.asLiveData()
     val locationData = locationRepository.locationData.asLiveData()
@@ -43,8 +47,8 @@ class NextDaysViewModel @Inject constructor(
     val todayBigCardData
         get(): LiveData<Triple<List<DayWeatherModel>?, Int?, UserPreferences?>> = _todayBigCardData
 
-    private var weatherRepositoryInterface: WeatherRepositoryInterface =
-        MainWeatherRepository(database)
+    private var weatherRepository: WeatherRepositoryInterface =
+        MainWeatherRepository(database, dispatcherProvider, weatherApi)
 
     fun updateSelectedCardIndex(index: Int) {
         _selectedCardIndex.value = index
@@ -66,24 +70,24 @@ class NextDaysViewModel @Inject constructor(
                 ) != DEFAULT_NEXT_DAYS_NUMBER
             ) {
                 deleteInvalidData()
-                val networkResponse = weatherRepositoryInterface.requestWeatherData(location, 8)
+                val networkResponse = weatherRepository.requestWeatherData(location, 8)
                 when (networkResponse) {
                     is NetworkResultWrapper.Success -> {
                         val newData =
-                            weatherRepositoryInterface.setMultipleDayWeatherData(networkResponse.value)
-                        weatherRepositoryInterface.storeNextDaysWeather(newData, location)
-                        _networkStatus.postValue(0)
+                            weatherRepository.setMultipleDayWeatherData(networkResponse.value)
+                        weatherRepository.storeNextDaysWeather(newData, location)
+                        _networkStatus.postValue(DataState.SUCCESS)
                     }
                     is NetworkResultWrapper.NetworkError -> {
                         Log.e("Network error", "Network error: IO Exception")
-                        _networkStatus.postValue(-1)
+                        _networkStatus.postValue(DataState.ERROR)
                     }
                     is NetworkResultWrapper.GenericError -> {
                         Log.e(
                             "Network error",
                             "Message: ${networkResponse.error?.error?.message ?: "generic"}"
                         )
-                        _networkStatus.postValue(-1)
+                        _networkStatus.postValue(DataState.ERROR)
                     }
                 }
             }
@@ -98,7 +102,7 @@ class NextDaysViewModel @Inject constructor(
                     endDate
                 )
             setNextDaysWeatherData(dayWeatherList)
-            _networkStatus.postValue(0)
+            _networkStatus.postValue(DataState.SUCCESS)
         }
     }
 

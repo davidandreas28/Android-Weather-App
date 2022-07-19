@@ -18,8 +18,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.weatherapp.R
 import com.example.weatherapp.core.repositories.asString
 import com.example.weatherapp.MyApplication
+import com.example.weatherapp.core.utils.DataState
 import javax.inject.Inject
-
 
 class NextDaysFragment : Fragment() {
 
@@ -82,12 +82,12 @@ class NextDaysFragment : Fragment() {
 
     private fun observe() {
         nextDaysViewModel.networkStatus.observe(viewLifecycleOwner) {
-            if (it == 1) {
+            if (it == DataState.LOADING) {
                 setMainComponentsVisibility(false)
                 setBufferingSpinnerVisibility(true)
             }
 
-            if (it == 0) {
+            if (it == DataState.SUCCESS) {
                 setMainComponentsVisibility(true)
                 setBufferingSpinnerVisibility(false)
             }

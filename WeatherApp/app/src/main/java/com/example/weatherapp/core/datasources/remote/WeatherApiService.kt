@@ -27,8 +27,16 @@ interface WeatherApiService {
     ): WeatherApiModel
 }
 
-object WeatherApi {
-    val retrofitService: WeatherApiService by lazy {
+object WeatherApiImpl : WeatherApi {
+    private val retrofitService: WeatherApiService by lazy {
         retrofit.create(WeatherApiService::class.java)
     }
+
+    override fun getService(): WeatherApiService {
+        return retrofitService
+    }
+}
+
+interface WeatherApi {
+    fun getService(): WeatherApiService
 }
